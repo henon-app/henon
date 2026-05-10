@@ -515,29 +515,36 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
   };
 
   // ===== Post handler with photo support =====
-  const handlePost = () => {
-    if (!newPost.trim() && !selectedPhoto) return triggerToast('ጽሑፍ ወይም ፎቶ ያስፈልጋል!');
-    const post = {
-      id: Date.now(),
-      type: selectedPhoto ? 'photo' : 'text',
+ const handlePost = async () => {
+  if (!newPost.trim() && !selectedPhoto) 
+    return triggerToast('ጽሑፍ ወይም ፎቶ ያስፈልጋል!');
+  
+  const { data, error } = await supabase
+    .from('posts')
+    .insert([{
+      text: newPost,
       author: user.name,
       initials: user.name.slice(0, 2).toUpperCase(),
       color: '#B8860B',
-      text: newPost,
-      photoUrl: selectedPhoto ? selectedPhoto.url : null,
-      time: 'አሁን',
-      prayers: 0,
+      type: selectedPhoto ? 'photo' : 'text',
+      photo_url: selectedPhoto ? selectedPhoto.url : null,
+      user_email: user.email,
       likes: 0,
-      views: '1',
-      comments: []
-    };
+      prayers: 0,
+    }])
+    .select();
+
+  if (error) {
+    triggerToast('Post አልተጋራም: ' + error.message);
+  } else {
+    const post = { ...data[0], comments: [], time: 'አሁን', views: '1' };
     setPosts([post, ...posts]);
     setNewPost('');
     setSelectedPhoto(null);
     setNewPostType('text');
-    triggerToast('ምስክርነትህ ተጋርቷል! 🙏');
-  };
-
+    triggerToast('መልዕክት ተጋርቷል! 🙏');
+  }
+};
   // ===== Comment handler =====
   const handleAddComment = (postId) => {
     const text = (commentInputs[postId] || '').trim();
