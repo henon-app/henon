@@ -266,15 +266,17 @@ const AuthScreen = ({ onAuthSuccess }) => {
     setTimeout(() => onAuthSuccess({ name: signupData.name, email: signupData.email }), 1500);
   };
 
- const handleGoogle = () => {
-  signInWithPopup(auth, googleProvider)
-    .then((result) => {
-      onAuthSuccess({ name: result.user.displayName, email: result.user.email });
-    })
-    .catch((error) => {
-      showToast('Google login ስህተት: ' + error.code);
-    });
-  };
+ const handleGoogle = async () => {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: 'https://henon.vercel.app'
+    }
+  });
+  if (error) {
+    showToast('Google login ስህተት: ' + error.message);
+  }
+};
 
   const base = {
     backgroundColor: '#0D0A06', minHeight: '100vh', maxWidth: '430px',
