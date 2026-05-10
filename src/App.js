@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Home, Video, Upload, MessageCircle, Radio, User,
   Search, Bell, Settings, Menu, X, Heart, BookOpen,
@@ -451,6 +451,18 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
   const [showPlayer, setShowPlayer] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(PLAYLIST[0]);
   const [newPost, setNewPost] = useState('');
+ useEffect(() => {
+  const loadPosts = async () => {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (data && data.length > 0) {
+      setPosts(data.map(p => ({ ...p, comments: [] })));
+    }
+  };
+  loadPosts();
+}, []); 
   const [chatMsg, setChatMsg] = useState('');
   const [liveInput, setLiveInput] = useState('');
   const [notification, setNotification] = useState({ show: false, message: '' });
