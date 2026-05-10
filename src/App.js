@@ -1661,14 +1661,16 @@ const App = () => {
     }
   });
 
-  supabase.auth.onAuthStateChange((_event, session) => {
-    if (session) {
-      handleAuthSuccess({
-        name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
-        email: session.user.email
-      });
-    }
-  });
+ supabase.auth.onAuthStateChange((_event, session) => {
+  if (session) {
+    setUser({
+      name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+      email: session.user.email
+    });
+  } else {
+    setUser(null);
+  }
+});
 }, []);
   const handleAuthSuccess = (userData) => {
     setUser(userData);
