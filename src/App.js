@@ -19,8 +19,8 @@ import {
   ListMusic, Mail, Phone, Eye as EyeIcon, EyeOff,
   MessageSquare, HelpCircle as HelpIcon, UserCircle, ChevronDown as ChevronDownIcon
 } from 'lucide-react';
-import { auth } from './firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut, onAuthStatechanged } from 'firebase/auth';
+import { auth, googleprovider } from './firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
 const LOGO_SRC = "";
 
 // ===================== LANGUAGES =====================
