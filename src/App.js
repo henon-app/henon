@@ -257,15 +257,14 @@ const AuthScreen = ({ onAuthSuccess }) => {
     setTimeout(() => onAuthSuccess({ name: signupData.name, email: signupData.email }), 1500);
   };
 
-  const handleGoogle = () => {
-    const provider = new GoogleAuthProvider();
-    signInWithPopup(auth, provider)
-      .then((result) => {
-        onAuthSuccess({ name: result.user.displayName, email: result.user.email });
-      })
-      .catch((error) => {
-        showToast('Google login አልተሳካም: ' + error.message);
-      });
+ const handleGoogle = () => {
+  signInWithPopup(auth, googleProvider)
+    .then((result) => {
+      onAuthSuccess({ name: result.user.displayName, email: result.user.email });
+    })
+    .catch((error) => {
+      showToast('Google login ስህተት: ' + error.code);
+    });
   };
 
   const base = {
