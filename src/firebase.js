@@ -1,12 +1,11 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, GoogleAuthProvider } from "firebase/auth";
+
 const firebaseConfig = {
-  apiKey: "AIzaSyCT2B94sVhuC941SUw3ysU5FDokGv64VEo",
-  authDomain: "henon-news.firebaseapp.com",
-  projectId: "henon-news",
-  storageBucket: "henon-news.firebasestorage.app",
-  messagingSenderId: "614257705035",
-  appId: "1:614257705035:web:3e6f43dc12d041f2108dce"
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+  appId: process.env.REACT_APP_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
