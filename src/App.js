@@ -1651,27 +1651,27 @@ const App = () => {
   const [user, setUser] = useState(null);
   const [accounts, setAccounts] = useState([]);
 
-  useEffect(() => {
+ useEffect(() => {
   supabase.auth.getSession().then(({ data: { session } }) => {
     if (session) {
-      handleAuthSuccess({
+      setUser({
         name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
         email: session.user.email
       });
     }
   });
 
- supabase.auth.onAuthStateChange((_event, session) => {
-  if (session) {
-    setUser({
-      name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
-      email: session.user.email
-    });
-  } else {
-    setUser(null);
-  }
-});
-}, []);
+  supabase.auth.onAuthStateChange((_event, session) => {
+    if (session) {
+      setUser({
+        name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
+        email: session.user.email
+      });
+    } else {
+      setUser(null);
+    }
+  });
+}, []);s
   const handleAuthSuccess = (userData) => {
     setUser(userData);
     setAccounts(prev => {
