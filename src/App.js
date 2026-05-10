@@ -1,3 +1,4 @@
+import { supabase } from './supabase';
 import React, { useState, useRef } from 'react';
 import {
   Home, Video, Upload, MessageCircle, Radio, User,
@@ -239,16 +240,24 @@ const AuthScreen = ({ onAuthSuccess }) => {
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
-  const handleLogin = () => {
-    if (!loginData.email || !loginData.password) return showToast('Email እና Password ያስፈልጋል');
-    signInWithEmailAndPassword(auth, loginData.email, loginData.password)
-      .then((result) => {
-        onAuthSuccess({ name: result.user.displayName || loginData.email.split('@')[0], email: result.user.email });
-      })
-      .catch((error) => {
-        showToast('Login አልተሳካም: ' + error.message);
-      });
-  };
+  const handleLogin = async () => {
+  if (!loginData.email || !loginData.password) 
+    return showToast('Email እና Password ያስፈልጋል');
+  
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: loginData.email,
+    password: loginData.password,
+  });
+
+  if (error) {
+    showToast('Login አልተሳካም: ' + error.message);
+  } else {
+    onAuthSuccess({ 
+      name: data.user.email.split('@')[0], 
+      email: data.user.email 
+    });
+  }
+};
 
   const handleSignup = () => {
     if (!signupData.name || !signupData.email || !signupData.password) return showToast('ሁሉንም መስኮች ይሙሉ!');
