@@ -1588,7 +1588,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = usestate(true);
+  const [loading, setLoading] = useState(true);
   const [accounts, setAccounts] = useState([]);
   const [appLang, setAppLang] = useState('am');
 
