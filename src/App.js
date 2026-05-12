@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { auth, googleProvider } from './firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
-const LOGO_SRC = "";
+const LOGO_SRC = "/logo.png";
 
 // ===================== LANGUAGES =====================
 const LANGUAGES = [
