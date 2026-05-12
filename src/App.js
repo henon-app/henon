@@ -10,7 +10,7 @@ import {
   BellRing, UserCog, Headphones, SlidersHorizontal, BadgeCheck,
   HandHeart, BookMarked, ListMusic, Mail, Phone, Eye,
   EyeOff, MessageSquare, Compass, MessageCircle, User, Video,
-  Globe, Lock, Moon, X, Search, ChevronLeft, ArrowRight, Crown,
+  Globe, Lock, Moon, X, Search, ChevronLeft, ArrowRight
 } from 'lucide-react';
 
 const LOGO_SRC = "/logo.png";
