@@ -1588,6 +1588,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [user, setUser] = useState(null);
+  const [loading, setLoading] = usestate(true);
   const [accounts, setAccounts] = useState([]);
   const [appLang, setAppLang] = useState('am');
 
@@ -1606,6 +1607,7 @@ const App = () => {
 
   useEffect(() => {
     const extractUser = (u) => {
+      if (!u) return null;
       const meta = u.user_metadata ?? {};
       return {
         name: meta.full_name || meta.name || meta.display_name || u.email.split('@')[0],
@@ -1613,22 +1615,29 @@ const App = () => {
         avatar: meta.avatar_url || null,
       };
     };
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) handleAuthSuccess(extractUser(session.user));
+      if (session?.user) {
+        setUser(handleAuthSuccess(extractUser(session.user)));
+      }
+      setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) handleAuthSuccess(extractUser(session.user));
-      if (event === 'SIGNED_OUT') setUser(null);
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(handleAuthSuccess(extractUser(session.user)));
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+      }
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, [handleAuthSuccess]);
-
   const handleSwitchAccount = (acc) => setUser(acc);
   const handleAddAccount = () => setUser(null);
 
-  if (showSplash) return <SplashScreen />;
+  if (showSplash || loading) return <SplashScreen />;
   if (!user) return <AuthScreen onAuthSuccess={handleAuthSuccess} />;
 
   return (
