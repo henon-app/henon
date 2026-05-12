@@ -259,12 +259,36 @@ const AuthScreen = ({ onAuthSuccess }) => {
   }
 };
 
-  const handleSignup = () => {
-    if (!signupData.name || !signupData.email || !signupData.password) return showToast('ሁሉንም መስኮች ይሙሉ!');
-    if (signupData.password !== signupData.confirm) return showToast('የይለፍ ቃሉ አይዛመድም!');
-    showToast('ሂሳብ እየተፈጠረ...');
-    setTimeout(() => onAuthSuccess({ name: signupData.name, email: signupData.email }), 1500);
-  };
+  const handleSignup = async () => {
+  if (!signupData.name || !signupData.email || !signupData.password)
+    return showToast('ሁሉንም መስኮች ይሙሉ!');
+  if (signupData.password !== signupData.confirm)
+    return showToast('የይለፍ ቃሉ አይዛመድም!');
+  if (signupData.password.length < 6)
+    return showToast('Password ቢያንስ 6 ፊደል ይሁን!');
+
+  showToast('ሂሳብ እየተፈጠረ...');
+
+  const { data, error } = await supabase.auth.signUp({
+    email: signupData.email,
+    password: signupData.password,
+    options: {
+      data: {
+        full_name: signupData.name,
+        phone: signupData.phone || '',
+      }
+    }
+  });
+
+  if (error) {
+    showToast('ስህተት: ' + error.message);
+  } else {
+    onAuthSuccess({
+      name: signupData.name,
+      email: signupData.email,
+    });
+  }
+};
 
  const handleGoogle = async () => {
   const { error } = await supabase.auth.signInWithOAuth({
