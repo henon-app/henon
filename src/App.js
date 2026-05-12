@@ -9,7 +9,7 @@ import {
   PlayCircle, TrendingUp, Award, Crown, LogOut, Wand2, Mic2,
   Clapperboard, LayoutGrid, UserPlus, UserCheck, ChevronUp, ChevronDown,
   BellRing, UserCog, Headphones, SlidersHorizontal, BadgeCheck,
-  HandHeart, BookMarked, ListMusic, Mail, Phone, Eye as EyeIcon,
+  HandHeart, BookMarked, ListMusic, Mail, Phone, Eye,
   EyeOff, MessageSquare, Compass, MessageCircle, User, Video,
   Globe, Lock, Moon, X, Search
 } from 'lucide-react';
@@ -468,7 +468,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
         </div>
         <AuthInput icon={Mail} placeholder={t('email')} type="email" value={loginData.email} onChange={e => setLoginData({ ...loginData, email: e.target.value })} />
         <AuthInput icon={Lock} placeholder={t('password')} type={showPass ? 'text' : 'password'} value={loginData.password} onChange={e => setLoginData({ ...loginData, password: e.target.value })}
-          rightIcon={showPass ? <EyeOff size={16} color="#888" strokeWidth={1.8} /> : <EyeIcon size={16} color="#888" strokeWidth={1.8} />}
+          rightIcon={showPass ? <EyeOff size={16} color="#888" strokeWidth={1.8} /> : <Eye size={16} color="#888" strokeWidth={1.8} />}
           onRightClick={() => setShowPass(!showPass)} />
         <div style={{ textAlign: 'right', marginBottom: '24px' }}>
           <button onClick={() => showToast('Password reset ተልኳል!')} style={{ background: 'none', border: 'none', color: '#B8860B', fontSize: '13px', cursor: 'pointer' }}>
@@ -516,10 +516,10 @@ const AuthScreen = ({ onAuthSuccess }) => {
         <AuthInput icon={Phone} placeholder={t('phone')} type="tel" value={signupData.phone} onChange={e => setSignupData({ ...signupData, phone: e.target.value })} />
         <AuthInput icon={Globe} placeholder={t('religion')} value={signupData.religion} onChange={e => setSignupData({ ...signupData, religion: e.target.value })} />
         <AuthInput icon={Lock} placeholder={t('password')} type={showPass ? 'text' : 'password'} value={signupData.password} onChange={e => setSignupData({ ...signupData, password: e.target.value })}
-          rightIcon={showPass ? <EyeOff size={16} color="#888" strokeWidth={1.8} /> : <EyeIcon size={16} color="#888" strokeWidth={1.8} />}
+          rightIcon={showPass ? <EyeOff size={16} color="#888" strokeWidth={1.8} /> : <Eye size={16} color="#888" strokeWidth={1.8} />}
           onRightClick={() => setShowPass(!showPass)} />
         <AuthInput icon={Lock} placeholder={t('confirmPass')} type={showConfirm ? 'text' : 'password'} value={signupData.confirm} onChange={e => setSignupData({ ...signupData, confirm: e.target.value })}
-          rightIcon={showConfirm ? <EyeOff size={16} color="#888" strokeWidth={1.8} /> : <EyeIcon size={16} color="#888" strokeWidth={1.8} />}
+          rightIcon={showConfirm ? <EyeOff size={16} color="#888" strokeWidth={1.8} /> : <Eye size={16} color="#888" strokeWidth={1.8} />}
           onRightClick={() => setShowConfirm(!showConfirm)} />
         {signupData.password.length > 0 && (
           <div style={{ marginBottom: '16px' }}>
