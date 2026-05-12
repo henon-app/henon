@@ -1613,7 +1613,6 @@ const App = () => {
         avatar: meta.avatar_url || null,
       };
     };
-
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) handleAuthSuccess(extractUser(session.user));
     });
@@ -1643,26 +1642,6 @@ const App = () => {
     />
   );
 };
-
-const ArrowRight = ({ size = 18, color = '#000', strokeWidth = 2 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-    <line x1="5" y1="12" x2="19" y2="12" />
-    <polyline points="12 5 19 12 12 19" />
-  </svg>
-);
-
-const ChevronLeft = ({ size = 20, color = '#B8860B', strokeWidth = 1.8 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="15 18 9 12 15 6" />
-  </svg>
-);
-
-
-const Crown = ({ size = 18, color = 'currentColor', strokeWidth = 1.8 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-    <path d="M2 20h20M4 20L2 8l6 4 4-6 4 6 6-4-2 12H4z"/>
-  </svg>
-);
 
 const Copy = ({ size = 18, color = 'currentColor', strokeWidth = 1.8 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
