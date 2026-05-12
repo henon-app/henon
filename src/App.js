@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Home, Video, Upload, MessageCircle, Radio, User,
   Search, Bell, Settings, Menu, X, Heart, BookOpen,
@@ -1651,49 +1651,71 @@ const App = () => {
   const [user, setUser] = useState(null);
   const [accounts, setAccounts] = useState([]);
 
-  useEffect(() => {
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    if (session) {
-      handleAuthSuccess({
-        name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
-        email: session.user.email
-      });
-    }
-  });
-
- supabase.auth.onAuthStateChange((_event, session) => {
-  if (session) {
-    setUser({
-      name: session.user.user_metadata?.full_name || session.user.email.split('@')[0],
-      email: session.user.email
-    });
-  } else {
-    setUser(null);
-  }
-});
-}, []);
-  const handleAuthSuccess = (userData) => {
+  // ✅ handleAuthSuccess ከ useEffect በፊት ይፈጠራል
+  const handleAuthSuccess = useCallback((userData) => {
     setUser(userData);
     setAccounts(prev => {
       if (prev.find(a => a.email === userData.email)) return prev;
       return [...prev, userData];
     });
-  };
+  }, []);
 
-  const handleSwitchAccount = (acc) => { setUser(acc); };
-  const handleAddAccount = () => { setUser(null); };
+  useEffect(() => {
+    // Helper — user object → display name ያወጣል
+    const extractUser = (supabaseUser) => {
+      const meta = supabaseUser.user_metadata ?? {};
+      return {
+        name:
+          meta.full_name ||   // Google OAuth
+          meta.name      ||   // አንዳንድ providers
+          meta.display_name || 
+          supabaseUser.email.split('@')[0],
+        email:  supabaseUser.email,
+        avatar: meta.avatar_url || null,
+      };
+    };
+
+    // 1️⃣ Page load ሲሆን — Google redirect በኋላ ይህ ነው የሚሰራው
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        handleAuthSuccess(extractUser(session.user));
+      }
+    });
+
+    // 2️⃣ Future events (email login, logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        console.log('🔥 Auth event:', event);
+        console.log('🔥 Metadata:', session?.user?.user_metadata);
+
+        if (event === 'SIGNED_IN' && session?.user) {
+          handleAuthSuccess(extractUser(session.user));
+        }
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+        }
+      }
+    );
+
+    // ✅ Cleanup — memory leak ይከላከላል
+    return () => subscription.unsubscribe();
+  }, [handleAuthSuccess]);
+
+  const handleSwitchAccount = (acc) => setUser(acc);
+  const handleAddAccount   = ()    => setUser(null);
 
   if (!user) return <AuthScreen onAuthSuccess={handleAuthSuccess} />;
 
-  return <MainApp
-    user={user}
-    onLogout={() => setUser(null)}
-    accounts={accounts}
-    onSwitchAccount={handleSwitchAccount}
-    onAddAccount={handleAddAccount}
-  />;
+  return (
+    <MainApp
+      user={user}
+      onLogout={() => { supabase.auth.signOut(); setUser(null); }}
+      accounts={accounts}
+      onSwitchAccount={handleSwitchAccount}
+      onAddAccount={handleAddAccount}
+    />
+  );
 };
-
 const ArrowRight = ({ size = 18, color = '#000', strokeWidth = 2 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
     <line x1="5" y1="12" x2="19" y2="12" />
