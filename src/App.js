@@ -1657,11 +1657,6 @@ const ChevronLeft = ({ size = 20, color = '#B8860B', strokeWidth = 1.8 }) => (
   </svg>
 );
 
-const ChevronDown = ({ size = 14, color = '#B8860B', strokeWidth = 1.8 }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
 
 const Crown = ({ size = 18, color = 'currentColor', strokeWidth = 1.8 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
