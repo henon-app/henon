@@ -1,28 +1,121 @@
+bash
+
+cat > /home/claude/App.js << 'ENDOFFILE'
 import { supabase } from './supabase';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
-  Home, Video, Upload, MessageCircle, Radio, User,
-  Search, Bell, Settings, Menu, X, Heart, BookOpen,
-  Calendar, Music, ChevronRight, Send, Play, Pause,
-  SkipBack, SkipForward, Download, Bookmark, Share2,
-  Camera, Mic, FileText, Star, Eye, ThumbsUp, Gift,
-  Plus, ArrowLeft, ArrowUp, ArrowDown, Check, Flame,
-  Tv, Link, Copy, Save, Clock, Users, MapPin,
-  Sparkles, Volume2, MoreVertical, PlusCircle, Image,
-  Film, Newspaper, UploadCloud, Loader, Rss, Zap,
-  PlayCircle, TrendingUp, Award, Crown, Feather,
-  Sun, Moon, Globe, Lock, HelpCircle, LogOut,
-  Hash, AtSign, Layers, Compass, Wand2, Mic2,
-  PenLine, Clapperboard, ScanLine, LayoutGrid,
-  UserPlus, UserCheck, Edit3, ChevronUp, ChevronDown,
-  BellRing, UserCog, AlignJustify, Headphones,
-  SlidersHorizontal, BadgeCheck, HandHeart, BookMarked,
-  ListMusic, Mail, Phone, Eye as EyeIcon, EyeOff,
-  MessageSquare, HelpCircle as HelpIcon, UserCircle, ChevronDown as ChevronDownIcon
+  Heart, BookOpen, Calendar, ChevronRight, Send, Pause,
+  SkipBack, SkipForward, Download, Share2, Camera, Gift,
+  Plus, ArrowLeft, Check, Clock, Users, Sparkles, Volume2,
+  PlusCircle, Image, Newspaper, UploadCloud, Rss, Zap,
+  PlayCircle, TrendingUp, Award, Crown, LogOut, Wand2, Mic2,
+  Clapperboard, LayoutGrid, UserPlus, UserCheck, ChevronUp, ChevronDown,
+  BellRing, UserCog, Headphones, SlidersHorizontal, BadgeCheck,
+  HandHeart, BookMarked, ListMusic, Mail, Phone, Eye as EyeIcon,
+  EyeOff, MessageSquare, Compass, MessageCircle, User, Video,
+  Globe, Lock, Moon, X, Search
 } from 'lucide-react';
-import { auth, googleProvider } from './firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from 'firebase/auth';
+
 const LOGO_SRC = "/logo.png";
+
+// ===================== TRANSLATIONS =====================
+const TRANSLATIONS = {
+  am: {
+    home: 'መነሻ', video: 'ቪዲዮ', share: 'አጋራ', message: 'መልዕክት',
+    live: 'Live', profile: 'እኔ', signIn: 'ግባ', signUp: 'ሂሳብ ፍጠር',
+    signOut: 'ውጣ', email: 'Email አድራሻ', password: 'የይለፍ ቃል',
+    fullName: 'ሙሉ ስም', phone: 'ስልክ ቁጥር (አማራጭ)', religion: 'ሃይማኖት አስገቡ',
+    forgotPassword: 'የይለፍ ቃሉን ረሳሁ?', newAccount: 'አዲስ ሂሳብ ይክፈቱ',
+    alreadyHave: 'ሂሳብ አለዎ?', noAccount: 'ሂሳብ የለዎትም?',
+    register: 'ይመዝገቡ', welcomeBack: 'እንኳን ደህና መጡ!',
+    joinFamily: 'ወደ ሄኖን ቤተሰብ ይቀላቀሉ', orUse: 'ወይም',
+    useGoogle: 'Google ይጠቀሙ', useEmail: 'ወይም Email ይጠቀሙ',
+    postPlaceholder: 'ምስክርነትዎን ወይም ጸሎትዎን ያጋሩ...', postBtn: 'አጋራ',
+    fasting: 'ጾምና ዝክር', bible: 'ቃለ እግዚአብሔር', playlist: 'ያሬዳዊ ዝማሬ',
+    saints: 'የቅዱሳን ዝክር', settings: 'ቅንብሮች', addAccount: 'ሌላ ሂሳብ ጨምር',
+    notifications: 'ማሳወቂያዎች', darkMode: 'ጨለማ ሁነታ', privacy: 'ግላዊነት',
+    language: 'ቋንቋ', helpCenter: 'የዕርዳታ ማዕከል', about: 'ስለ ሄኖን', sendMsg: 'ላክ',
+    verified: 'የተረጋገጠ ሂሳብ', requestVerify: 'ማረጋገጫ ምልክት ጠይቅ',
+    posts: 'ፖስቶች', followers: 'ተከታዮች', following: 'ተከታይ',
+    verses: 'ጥቅሶች', songs: 'ዝማሬዎች', confirmPass: 'የይለፍ ቃሉን ያረጋግጡ',
+    viewProfile: 'ፕሮፋይሌን ይመልከቱ', tagline: 'የኦርቶዶክስ ተዋህዶ መንፈሳዊ ማህበረሰብ',
+    slogan: 'ይቀላቀሉን • ይጸልዩ • ይሰብሱ', loginTitle: 'ወደ ሄኖን ለመግባት ይጠቀሙ',
+    conversations: 'ውይይቶች', liveStreams: 'ቀጥታ ስርጭቶች', startLive: 'Live ጀምር',
+    back: 'ተመለስ', addNew: 'አዲስ ጋሪ', weakPass: 'ደካማ', medPass: 'መካከለኛ',
+    strongPass: '✓ ጠንካራ', cancel: 'ሰርዝ', confirm: 'አረጋግጥ',
+    verifyTitle: 'ማረጋገጫ ምልክት', verifySubtitle: 'ኮድ ካለዎት ይጠቀሙ',
+    verifyCode: 'ኮድ ያስገቡ...', verifySuccess: '✅ ማረጋገጫ ምልክት ተሰጥቷል!',
+    verifyFail: '❌ ኮዱ ትክክል አይደለም!', helpPlaceholder: 'ጥያቄዎን ወይም ቅሬታዎን ይጻፉ...',
+    techIssue: 'ቴክኒካዊ ችግር', account: 'ሂሳብ', other: 'ሌላ',
+    msgSent: 'መልዕክትዎ ተልኳል! በቅርቡ እንደርሳዎታለን።',
+    existingAccounts: 'የሚጠቀሙባቸው ሂሳቦች', newAccountCreate: 'አዲስ ሂሳብ ፍጠር',
+    addAccountTitle: 'ሌላ ሂሳብ ጨምር', sacredMusic: 'ያሬዳዊ ዜማዎች',
+    renewSpirit: 'መንፈስን የሚያድሱ ዝማሬዎች', playAll: 'አጫውት',
+    nowPlaying: 'በመጫወት ላይ:', relatedVideos: 'ተዛማጅ ቪዲዮዎች',
+    giftSent: 'ስጦታ ተልኳል!', commentInput: 'ሀሳብ ይስጡ...',
+    photoLabel: 'ፎቶ', addStory: 'አክል', downloaded: 'ወረደ!',
+    copied: 'ተቀድቷል!', saved: 'ተቀምጧል!', shared: 'ተጋርቷል!',
+    prayer: 'ጸሎት ተመዝግቧል 🙏', uploaded: 'ተጫኗል!', liveStarted: 'Live ተጀምሯል!',
+    enterTitle: 'ርዕስ ያስገቡ!', cameraPreview: 'ካሜራ ቅድመ-ዕይታ',
+    selectFile: 'ፋይል ምረጥ', dragDrop: 'ወይም ይጎትቱ ያስቀምጡ',
+    description: 'መግለጫ ያስገቡ...', changePhoto: 'ፎቶ ይቀይሩ',
+    onlineText: 'መስመር ላይ', offlineText: 'ከቆይታ በፊት',
+    commentPlaceholder: 'አስተያየት ይስጡ...', noComments: 'ፊት ለፊቱ አስተያየት ይስጡ ☦️',
+    daily: 'ዕለታዊ ቃል', follow: 'ተከተል', currentAccount: 'አሁን',
+    termsText: 'በመመዝገብ የሄኖን', termsLink: 'የአጠቃቀም ደንቦችን',
+    andText: 'እና', privacyLink: 'የግላዊነት መመሪያን', acceptedText: 'ተቀብለዋል።',
+    msgWritePlaceholder: 'መልዕክት ይጻፉ...',
+  },
+  en: {
+    home: 'Home', video: 'Video', share: 'Share', message: 'Message',
+    live: 'Live', profile: 'Profile', signIn: 'Sign In', signUp: 'Create Account',
+    signOut: 'Sign Out', email: 'Email Address', password: 'Password',
+    fullName: 'Full Name', phone: 'Phone Number (Optional)', religion: 'Enter your religion',
+    forgotPassword: 'Forgot Password?', newAccount: 'Create New Account',
+    alreadyHave: 'Already have an account?', noAccount: "Don't have an account?",
+    register: 'Register', welcomeBack: 'Welcome Back!',
+    joinFamily: 'Join the Henon Family', orUse: 'or',
+    useGoogle: 'Continue with Google', useEmail: 'or use Email',
+    postPlaceholder: 'Share your testimony or prayer...', postBtn: 'Post',
+    fasting: 'Fasting & Feast', bible: 'Holy Scripture', playlist: 'Sacred Music',
+    saints: 'Saints Calendar', settings: 'Settings', addAccount: 'Add Another Account',
+    notifications: 'Notifications', darkMode: 'Dark Mode', privacy: 'Privacy',
+    language: 'Language', helpCenter: 'Help Center', about: 'About Henon', sendMsg: 'Send',
+    verified: 'Verified Account', requestVerify: 'Request Verification',
+    posts: 'Posts', followers: 'Followers', following: 'Following',
+    verses: 'Verses', songs: 'Songs', confirmPass: 'Confirm Password',
+    viewProfile: 'View my profile', tagline: 'Ethiopian Orthodox Spiritual Community',
+    slogan: 'Join Us • Pray • Gather', loginTitle: 'Sign in to Henon',
+    conversations: 'Conversations', liveStreams: 'Live Streams', startLive: 'Go Live',
+    back: 'Back', addNew: 'New Post', weakPass: 'Weak', medPass: 'Medium',
+    strongPass: '✓ Strong', cancel: 'Cancel', confirm: 'Confirm',
+    verifyTitle: 'Verification Badge', verifySubtitle: 'Use your code if you have one',
+    verifyCode: 'Enter code...', verifySuccess: '✅ Verification badge granted!',
+    verifyFail: '❌ Incorrect code!', helpPlaceholder: 'Write your question or complaint...',
+    techIssue: 'Technical Issue', account: 'Account', other: 'Other',
+    msgSent: "Your message has been sent! We'll get back to you soon.",
+    existingAccounts: 'Your Accounts', newAccountCreate: 'Create New Account',
+    addAccountTitle: 'Add Another Account', sacredMusic: 'Sacred Music',
+    renewSpirit: 'Songs that renew the spirit', playAll: 'Play All',
+    nowPlaying: 'Now playing:', relatedVideos: 'Related Videos',
+    giftSent: 'Gift sent!', commentInput: 'Say something...',
+    photoLabel: 'Photo', addStory: 'Add', downloaded: 'Downloaded!',
+    copied: 'Copied!', saved: 'Saved!', shared: 'Shared!',
+    prayer: 'Prayer recorded 🙏', uploaded: 'Uploaded!', liveStarted: 'Live started!',
+    enterTitle: 'Please enter a title!', cameraPreview: 'Camera preview',
+    selectFile: 'Select File', dragDrop: 'or drag and drop',
+    description: 'Add a description...', changePhoto: 'Change Photo',
+    onlineText: 'Online', offlineText: 'Last seen',
+    commentPlaceholder: 'Add a comment...', noComments: 'Be the first to comment ☦️',
+    daily: 'Daily Word', follow: 'Follow', currentAccount: 'Current',
+    termsText: "By registering you accept Henon's", termsLink: 'Terms of Service',
+    andText: 'and', privacyLink: 'Privacy Policy', acceptedText: '.',
+    msgWritePlaceholder: 'Write a message...',
+  }
+};
+
+const useT = (lang) => (key) =>
+  TRANSLATIONS[lang]?.[key] || TRANSLATIONS['am'][key] || key;
 
 // ===================== LANGUAGES =====================
 const LANGUAGES = [
@@ -41,27 +134,17 @@ const LANGUAGES = [
   { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
   { code: 'sw', name: 'Kiswahili', flag: '🇰🇪' },
   { code: 'so', name: 'Soomaali', flag: '🇸🇴' },
-  { code: 'ha', name: 'Hausa', flag: '🇳🇬' },
-  { code: 'yo', name: 'Yorùbá', flag: '🇳🇬' },
-  { code: 'ig', name: 'Igbo', flag: '🇳🇬' },
   { code: 'om', name: 'Afaan Oromoo', flag: '🇪🇹' },
   { code: 'ti', name: 'ትግርኛ', flag: '🇪🇷' },
   { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
-  { code: 'fa', name: 'فارسی', flag: '🇮🇷' },
-  { code: 'ur', name: 'اردو', flag: '🇵🇰' },
-  { code: 'bn', name: 'বাংলা', flag: '🇧🇩' },
-  { code: 'id', name: 'Bahasa Indonesia', flag: '🇮🇩' },
-  { code: 'ms', name: 'Bahasa Melayu', flag: '🇲🇾' },
   { code: 'nl', name: 'Nederlands', flag: '🇳🇱' },
   { code: 'pl', name: 'Polski', flag: '🇵🇱' },
-  { code: 'uk', name: 'Українська', flag: '🇺🇦' },
-  { code: 'el', name: 'Ελληνικά', flag: '🇬🇷' },
 ];
 
 // ===================== DATA =====================
 const FASTING_DAYS = [
-  { id: 1, name: 'ረቡዕ', icon: 'candle', description: 'የጌታችን የክህደት መታሰቢያ', status: 'አስገዳጅ' },
-  { id: 2, name: 'ዓርብ', icon: 'candle', description: 'የጌታችን የስቅለት መታሰቢያ', status: 'አስገዳጅ' },
+  { id: 1, name: 'ረቡዕ', icon: 'cross', description: 'የጌታችን የክህደት መታሰቢያ', status: 'አስገዳጅ' },
+  { id: 2, name: 'ዓርብ', icon: 'cross', description: 'የጌታችን የስቅለት መታሰቢያ', status: 'አስገዳጅ' },
   { id: 3, name: 'ጾመ ሐዋርያት', icon: 'cross', description: 'የቅዱሳን ሐዋርያት በረከት', status: 'ወቅታዊ' },
   { id: 4, name: 'ዐቢይ ጾም', icon: 'cross', description: 'የጌታችን የ40 ቀን ጾም', status: 'ወቅታዊ' },
   { id: 5, name: 'ጾመ ነቢያት', icon: 'cross', description: 'የልደት ዝግጅት', status: 'ወቅታዊ' },
@@ -114,7 +197,7 @@ const LIVE_STREAMS = [
 
 const VERIFIED_USERS = ['ደ/ዘማርያም ቤ/ክ', 'ዲያቆን ኃይሉ', 'አቡነ ቅዱስ', 'ቅዱስ እስጢፋኖስ ቤ/ክ', 'ዘማሪ ምርትነሽ'];
 
-// ===================== SHARED HELPERS =====================
+// ===================== HELPERS =====================
 const IC = ({ children, size = 18, color = 'currentColor', style = {} }) => (
   <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', ...style }}>
     {React.cloneElement(children, { size, color, strokeWidth: 1.8 })}
@@ -127,22 +210,16 @@ const Avatar = ({ initials, color, size = 40, fontSize = 14 }) => (
     background: `linear-gradient(135deg, ${color}cc, ${color}66)`,
     border: `2px solid ${color}88`,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    color: '#fff', fontWeight: '700', fontSize, flexShrink: 0, letterSpacing: '0.5px'
+    color: '#fff', fontWeight: '700', fontSize, flexShrink: 0,
   }}>{initials}</div>
 );
 
+// ✅ ትክክለኛ Ethiopian Orthodox Cross
 const CrossIcon = ({ size = 18, color = '#B8860B' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round">
-    <line x1="12" y1="2" x2="12" y2="22" />
-    <line x1="7" y1="7" x2="17" y2="7" />
-    <line x1="6" y1="12" x2="18" y2="12" />
-  </svg>
-);
-
-const CandleIcon = ({ size = 18, color = '#B8860B' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="9" y="8" width="6" height="14" rx="1" />
-    <path d="M12 8 C12 8 10 5 12 2 C14 5 12 8 12 8Z" fill={color} />
+  <svg width={size} height={size} viewBox="0 0 100 100" fill={color}>
+    <rect x="44" y="5" width="12" height="90" rx="2"/>
+    <rect x="10" y="25" width="80" height="12" rx="2"/>
+    <rect x="25" y="48" width="50" height="10" rx="2"/>
   </svg>
 );
 
@@ -162,7 +239,6 @@ const Toast = ({ msg }) => (
     borderRadius: '30px', zIndex: 9999, fontWeight: '700',
     boxShadow: '0 8px 30px rgba(0,0,0,0.6)', whiteSpace: 'nowrap',
     fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px',
-    fontFamily: '"Segoe UI", system-ui, sans-serif'
   }}>
     <Check size={14} color="#000" strokeWidth={2.5} /> {msg}
   </div>
@@ -228,6 +304,33 @@ const LanguageSelector = ({ selectedLang, onSelect }) => {
   );
 };
 
+// ===================== SPLASH SCREEN =====================
+const SplashScreen = () => (
+  <div style={{
+    position: 'fixed', inset: 0, backgroundColor: '#0D0A06',
+    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+    zIndex: 9999,
+  }}>
+    <div style={{ position: 'absolute', top: '-80px', left: '50%', transform: 'translateX(-50%)', width: '300px', height: '300px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(184,134,11,0.25) 0%, transparent 70%)', pointerEvents: 'none' }} />
+    <img
+      src={LOGO_SRC}
+      alt="ሄኖን"
+      style={{ width: '120px', height: '120px', objectFit: 'contain', borderRadius: '28px', boxShadow: '0 20px 60px rgba(184,134,11,0.5)', marginBottom: '24px', animation: 'fadeIn 0.8s ease' }}
+    />
+    <h1 style={{ fontSize: '52px', fontWeight: '900', color: '#B8860B', margin: '0 0 8px', letterSpacing: '4px' }}>ሄኖን</h1>
+    <p style={{ fontSize: '13px', color: '#555', margin: 0, letterSpacing: '2px' }}>HENON</p>
+    <div style={{ position: 'absolute', bottom: '60px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#B8860B', animation: 'pulse 1s infinite' }} />
+      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#B8860B55', animation: 'pulse 1s infinite 0.3s' }} />
+      <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#B8860B22', animation: 'pulse 1s infinite 0.6s' }} />
+    </div>
+    <style>{`
+      @keyframes fadeIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+      @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    `}</style>
+  </div>
+);
+
 // ===================== AUTH SCREENS =====================
 const AuthScreen = ({ onAuthSuccess }) => {
   const [screen, setScreen] = useState('welcome');
@@ -236,71 +339,58 @@ const AuthScreen = ({ onAuthSuccess }) => {
   const [toast, setToast] = useState('');
   const [selectedLang, setSelectedLang] = useState('am');
   const [loginData, setLoginData] = useState({ email: '', password: '' });
-  const [signupData, setSignupData] = useState({ name: '', email: '', phone: '', password: '', confirm: '' });
+  const [signupData, setSignupData] = useState({ name: '', email: '', phone: '', religion: '', password: '', confirm: '' });
+  const t = useT(selectedLang);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
   const handleLogin = async () => {
-  if (!loginData.email || !loginData.password) 
-    return showToast('Email እና Password ያስፈልጋል');
-  
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: loginData.email,
-    password: loginData.password,
-  });
-
-  if (error) {
-    showToast('Login አልተሳካም: ' + error.message);
-  } else {
-    onAuthSuccess({ 
-      name: data.user.email.split('@')[0], 
-      email: data.user.email 
+    if (!loginData.email || !loginData.password) return showToast('Email እና Password ያስፈልጋል');
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: loginData.email,
+      password: loginData.password,
     });
-  }
-};
+    if (error) {
+      showToast('Login አልተሳካም: ' + error.message);
+    } else {
+      const meta = data.user.user_metadata;
+      onAuthSuccess({
+        name: meta?.full_name || meta?.name || data.user.email.split('@')[0],
+        email: data.user.email,
+      });
+    }
+  };
 
   const handleSignup = async () => {
-  if (!signupData.name || !signupData.email || !signupData.password)
-    return showToast('ሁሉንም መስኮች ይሙሉ!');
-  if (signupData.password !== signupData.confirm)
-    return showToast('የይለፍ ቃሉ አይዛመድም!');
-  if (signupData.password.length < 6)
-    return showToast('Password ቢያንስ 6 ፊደል ይሁን!');
-
-  showToast('ሂሳብ እየተፈጠረ...');
-
-  const { data, error } = await supabase.auth.signUp({
-    email: signupData.email,
-    password: signupData.password,
-    options: {
-      data: {
-        full_name: signupData.name,
-        phone: signupData.phone || '',
-      }
-    }
-  });
-
-  if (error) {
-    showToast('ስህተት: ' + error.message);
-  } else {
-    onAuthSuccess({
-      name: signupData.name,
+    if (!signupData.name || !signupData.email || !signupData.password) return showToast('ሁሉንም መስኮች ይሙሉ!');
+    if (signupData.password !== signupData.confirm) return showToast('የይለፍ ቃሉ አይዛመድም!');
+    if (signupData.password.length < 6) return showToast('Password ቢያንስ 6 ፊደል ይሁን!');
+    showToast('ሂሳብ እየተፈጠረ...');
+    const { data, error } = await supabase.auth.signUp({
       email: signupData.email,
+      password: signupData.password,
+      options: {
+        data: {
+          full_name: signupData.name,
+          phone: signupData.phone || '',
+          religion: signupData.religion || '',
+        }
+      }
     });
-  }
-};
-
- const handleGoogle = async () => {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: 'https://henon.vercel.app'
+    if (error) {
+      showToast('ስህተት: ' + error.message);
+    } else {
+      onAuthSuccess({ name: signupData.name, email: signupData.email });
     }
-  });
-  if (error) {
-    showToast('Google login ስህተት: ' + error.message);
-  }
-};
+  };
+
+  const handleGoogle = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: 'https://henon.vercel.app' }
+    });
+    if (error) showToast('Google login ስህተት: ' + error.message);
+  };
 
   const base = {
     backgroundColor: '#0D0A06', minHeight: '100vh', maxWidth: '430px',
@@ -312,21 +402,16 @@ const AuthScreen = ({ onAuthSuccess }) => {
   if (screen === 'welcome') return (
     <div style={base}>
       <div style={{ position: 'absolute', top: '-80px', left: '50%', transform: 'translateX(-50%)', width: '320px', height: '320px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(184,134,11,0.18) 0%, transparent 70%)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', top: '40px', right: '30px', opacity: 0.1 }}><CrossIcon size={70} /></div>
-      <div style={{ position: 'absolute', top: '140px', left: '18px', opacity: 0.06 }}><CrossIcon size={44} /></div>
-      <div style={{ position: 'absolute', bottom: '160px', right: '16px', opacity: 0.06 }}><CrossIcon size={36} /></div>
       <div style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 10 }}>
         <LanguageSelector selectedLang={selectedLang} onSelect={setSelectedLang} />
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 32px 0' }}>
-        <div style={{ width: '110px', height: '110px', marginBottom: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src={LOGO_SRC} alt="ሄኖን" style={{ width: '110px', height: '110px', objectFit: 'contain', borderRadius: '24px', boxShadow: '0 20px 60px rgba(184,134,11,0.4)' }} />
-        </div>
+        <img src={LOGO_SRC} alt="ሄኖን" style={{ width: '110px', height: '110px', objectFit: 'contain', borderRadius: '24px', boxShadow: '0 20px 60px rgba(184,134,11,0.4)', marginBottom: '16px' }} />
         <h1 style={{ fontSize: '46px', fontWeight: '900', color: '#B8860B', margin: '0 0 6px', letterSpacing: '3px' }}>ሄኖን</h1>
-        <p style={{ fontSize: '14px', color: '#666', margin: '0 0 6px', textAlign: 'center' }}>የኦርቶዶክስ ተዋህዶ መንፈሳዊ ማህበረሰብ</p>
+        <p style={{ fontSize: '14px', color: '#666', margin: '0 0 6px', textAlign: 'center' }}>{t('tagline')}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '40px' }}>
           <Sparkles size={12} color="#B8860B" strokeWidth={1.8} />
-          <span style={{ fontSize: '12px', color: '#B8860B' }}>ይቀላቀሉን • ይጸልዩ • ይሰብሱ</span>
+          <span style={{ fontSize: '12px', color: '#B8860B' }}>{t('slogan')}</span>
           <Sparkles size={12} color="#B8860B" strokeWidth={1.8} />
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '48px' }}>
@@ -337,18 +422,18 @@ const AuthScreen = ({ onAuthSuccess }) => {
       </div>
       <div style={{ padding: '0 24px 52px' }}>
         <button onClick={() => setScreen('signup')} style={{ width: '100%', background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '16px', padding: '16px', color: '#000', fontWeight: '800', fontSize: '16px', cursor: 'pointer', marginBottom: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 8px 30px rgba(184,134,11,0.4)' }}>
-          አዲስ ሂሳብ ይክፈቱ <ArrowRight size={18} color="#000" strokeWidth={2.5} />
+          {t('newAccount')} <ArrowRight size={18} color="#000" strokeWidth={2.5} />
         </button>
         <button onClick={() => setScreen('login')} style={{ width: '100%', background: 'transparent', border: '1px solid #2a2010', borderRadius: '16px', padding: '16px', color: '#F0E6C8', fontWeight: '700', fontSize: '15px', cursor: 'pointer', marginBottom: '16px' }}>
-          ገብቷል — ይግቡ
+          {t('alreadyHave')} — {t('signIn')}
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
           <div style={{ flex: 1, height: '1px', background: '#2a2010' }} />
-          <span style={{ fontSize: '12px', color: '#555' }}>ወይም</span>
+          <span style={{ fontSize: '12px', color: '#555' }}>{t('orUse')}</span>
           <div style={{ flex: 1, height: '1px', background: '#2a2010' }} />
         </div>
         <button onClick={handleGoogle} style={{ width: '100%', background: '#1A1508', border: '1px solid #2a2010', borderRadius: '16px', padding: '14px', color: '#F0E6C8', fontWeight: '600', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-          <GoogleIcon size={20} /> Google ይጠቀሙ
+          <GoogleIcon size={20} /> {t('useGoogle')}
         </button>
       </div>
       {toast && <Toast msg={toast} />}
@@ -358,7 +443,6 @@ const AuthScreen = ({ onAuthSuccess }) => {
 
   if (screen === 'login') return (
     <div style={base}>
-      <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '260px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle,rgba(184,134,11,0.14) 0%,transparent 70%)', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 10 }}>
         <LanguageSelector selectedLang={selectedLang} onSelect={setSelectedLang} />
       </div>
@@ -367,8 +451,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
           <ChevronLeft size={20} color="#B8860B" strokeWidth={1.8} />
         </button>
         <div>
-          <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '800' }}>እንኳን ደህና መጡ!</h2>
-          <p style={{ margin: 0, fontSize: '13px', color: '#666', marginTop: '2px' }}>ወደ ሄኖን ለመግባት ይጠቀሙ</p>
+          <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '800' }}>{t('welcomeBack')}</h2>
+          <p style={{ margin: 0, fontSize: '13px', color: '#666', marginTop: '2px' }}>{t('loginTitle')}</p>
         </div>
       </div>
       <div style={{ padding: '0 24px', flex: 1 }}>
@@ -377,28 +461,28 @@ const AuthScreen = ({ onAuthSuccess }) => {
           <span style={{ fontSize: '22px', fontWeight: '900', color: '#B8860B', letterSpacing: '1px' }}>ሄኖን</span>
         </div>
         <button onClick={handleGoogle} style={{ width: '100%', background: '#1A1508', border: '1px solid #2a2010', borderRadius: '14px', padding: '14px', color: '#F0E6C8', fontWeight: '600', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
-          <GoogleIcon size={20} /> Google ይጠቀሙ
+          <GoogleIcon size={20} /> {t('useGoogle')}
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
           <div style={{ flex: 1, height: '1px', background: '#2a2010' }} />
-          <span style={{ fontSize: '12px', color: '#555' }}>ወይም Email ይጠቀሙ</span>
+          <span style={{ fontSize: '12px', color: '#555' }}>{t('useEmail')}</span>
           <div style={{ flex: 1, height: '1px', background: '#2a2010' }} />
         </div>
-        <AuthInput icon={Mail} placeholder="Email አድራሻ" type="email" value={loginData.email} onChange={e => setLoginData({ ...loginData, email: e.target.value })} />
-        <AuthInput icon={Lock} placeholder="የይለፍ ቃል" type={showPass ? 'text' : 'password'} value={loginData.password} onChange={e => setLoginData({ ...loginData, password: e.target.value })}
+        <AuthInput icon={Mail} placeholder={t('email')} type="email" value={loginData.email} onChange={e => setLoginData({ ...loginData, email: e.target.value })} />
+        <AuthInput icon={Lock} placeholder={t('password')} type={showPass ? 'text' : 'password'} value={loginData.password} onChange={e => setLoginData({ ...loginData, password: e.target.value })}
           rightIcon={showPass ? <EyeOff size={16} color="#888" strokeWidth={1.8} /> : <EyeIcon size={16} color="#888" strokeWidth={1.8} />}
           onRightClick={() => setShowPass(!showPass)} />
         <div style={{ textAlign: 'right', marginBottom: '24px' }}>
           <button onClick={() => showToast('Password reset ተልኳል!')} style={{ background: 'none', border: 'none', color: '#B8860B', fontSize: '13px', cursor: 'pointer' }}>
-            የይለፍ ቃሉን ረሳሁ?
+            {t('forgotPassword')}
           </button>
         </div>
         <button onClick={handleLogin} style={{ width: '100%', background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '16px', padding: '16px', color: '#000', fontWeight: '800', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 8px 30px rgba(184,134,11,0.35)', marginBottom: '24px' }}>
-          ግባ <ArrowRight size={18} color="#000" strokeWidth={2.5} />
+          {t('signIn')} <ArrowRight size={18} color="#000" strokeWidth={2.5} />
         </button>
         <p style={{ textAlign: 'center', fontSize: '13px', color: '#666' }}>
-          ሂሳብ የለዎትም?{' '}
-          <button onClick={() => setScreen('signup')} style={{ background: 'none', border: 'none', color: '#B8860B', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}>ይመዝገቡ</button>
+          {t('noAccount')}{' '}
+          <button onClick={() => setScreen('signup')} style={{ background: 'none', border: 'none', color: '#B8860B', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}>{t('register')}</button>
         </p>
       </div>
       {toast && <Toast msg={toast} />}
@@ -408,7 +492,6 @@ const AuthScreen = ({ onAuthSuccess }) => {
 
   return (
     <div style={base}>
-      <div style={{ position: 'absolute', bottom: '-60px', left: '-60px', width: '260px', height: '260px', borderRadius: '50%', background: 'radial-gradient(circle,rgba(184,134,11,0.12) 0%,transparent 70%)', pointerEvents: 'none' }} />
       <div style={{ position: 'absolute', top: '16px', right: '16px', zIndex: 10 }}>
         <LanguageSelector selectedLang={selectedLang} onSelect={setSelectedLang} />
       </div>
@@ -417,26 +500,27 @@ const AuthScreen = ({ onAuthSuccess }) => {
           <ChevronLeft size={20} color="#B8860B" strokeWidth={1.8} />
         </button>
         <div>
-          <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '800' }}>ሂሳብ ይክፈቱ</h2>
-          <p style={{ margin: 0, fontSize: '13px', color: '#666', marginTop: '2px' }}>ወደ ሄኖን ቤተሰብ ይቀላቀሉ</p>
+          <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '800' }}>{t('signUp')}</h2>
+          <p style={{ margin: 0, fontSize: '13px', color: '#666', marginTop: '2px' }}>{t('joinFamily')}</p>
         </div>
       </div>
       <div style={{ padding: '0 24px', flex: 1, overflowY: 'auto', paddingBottom: '48px' }}>
         <button onClick={handleGoogle} style={{ width: '100%', background: '#1A1508', border: '1px solid #2a2010', borderRadius: '14px', padding: '14px', color: '#F0E6C8', fontWeight: '600', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
-          <GoogleIcon size={20} /> Google ይጠቀሙ
+          <GoogleIcon size={20} /> {t('useGoogle')}
         </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
           <div style={{ flex: 1, height: '1px', background: '#2a2010' }} />
-          <span style={{ fontSize: '12px', color: '#555' }}>ወይም Email ይጠቀሙ</span>
+          <span style={{ fontSize: '12px', color: '#555' }}>{t('useEmail')}</span>
           <div style={{ flex: 1, height: '1px', background: '#2a2010' }} />
         </div>
-        <AuthInput icon={User} placeholder="ሙሉ ስም" value={signupData.name} onChange={e => setSignupData({ ...signupData, name: e.target.value })} />
-        <AuthInput icon={Mail} placeholder="Email አድራሻ" type="email" value={signupData.email} onChange={e => setSignupData({ ...signupData, email: e.target.value })} />
-        <AuthInput icon={Phone} placeholder="ስልክ ቁጥር (አማራጭ)" type="tel" value={signupData.phone} onChange={e => setSignupData({ ...signupData, phone: e.target.value })} />
-        <AuthInput icon={Lock} placeholder="የይለፍ ቃል" type={showPass ? 'text' : 'password'} value={signupData.password} onChange={e => setSignupData({ ...signupData, password: e.target.value })}
+        <AuthInput icon={User} placeholder={t('fullName')} value={signupData.name} onChange={e => setSignupData({ ...signupData, name: e.target.value })} />
+        <AuthInput icon={Mail} placeholder={t('email')} type="email" value={signupData.email} onChange={e => setSignupData({ ...signupData, email: e.target.value })} />
+        <AuthInput icon={Phone} placeholder={t('phone')} type="tel" value={signupData.phone} onChange={e => setSignupData({ ...signupData, phone: e.target.value })} />
+        <AuthInput icon={Globe} placeholder={t('religion')} value={signupData.religion} onChange={e => setSignupData({ ...signupData, religion: e.target.value })} />
+        <AuthInput icon={Lock} placeholder={t('password')} type={showPass ? 'text' : 'password'} value={signupData.password} onChange={e => setSignupData({ ...signupData, password: e.target.value })}
           rightIcon={showPass ? <EyeOff size={16} color="#888" strokeWidth={1.8} /> : <EyeIcon size={16} color="#888" strokeWidth={1.8} />}
           onRightClick={() => setShowPass(!showPass)} />
-        <AuthInput icon={Lock} placeholder="የይለፍ ቃሉን ያረጋግጡ" type={showConfirm ? 'text' : 'password'} value={signupData.confirm} onChange={e => setSignupData({ ...signupData, confirm: e.target.value })}
+        <AuthInput icon={Lock} placeholder={t('confirmPass')} type={showConfirm ? 'text' : 'password'} value={signupData.confirm} onChange={e => setSignupData({ ...signupData, confirm: e.target.value })}
           rightIcon={showConfirm ? <EyeOff size={16} color="#888" strokeWidth={1.8} /> : <EyeIcon size={16} color="#888" strokeWidth={1.8} />}
           onRightClick={() => setShowConfirm(!showConfirm)} />
         {signupData.password.length > 0 && (
@@ -447,19 +531,19 @@ const AuthScreen = ({ onAuthSuccess }) => {
               ))}
             </div>
             <span style={{ fontSize: '11px', color: '#666' }}>
-              {signupData.password.length < 4 ? 'ደካማ' : signupData.password.length < 8 ? 'መካከለኛ' : '✓ ጠንካራ'}
+              {signupData.password.length < 4 ? t('weakPass') : signupData.password.length < 8 ? t('medPass') : t('strongPass')}
             </span>
           </div>
         )}
         <p style={{ fontSize: '11px', color: '#555', textAlign: 'center', marginBottom: '20px', lineHeight: '1.6' }}>
-          በመመዝገብ የሄኖን <span style={{ color: '#B8860B', cursor: 'pointer' }}>የአጠቃቀም ደንቦችን</span> እና <span style={{ color: '#B8860B', cursor: 'pointer' }}>የግላዊነት መመሪያን</span> ተቀብለዋል።
+          {t('termsText')} <span style={{ color: '#B8860B', cursor: 'pointer' }}>{t('termsLink')}</span> {t('andText')} <span style={{ color: '#B8860B', cursor: 'pointer' }}>{t('privacyLink')}</span> {t('acceptedText')}
         </p>
         <button onClick={handleSignup} style={{ width: '100%', background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '16px', padding: '16px', color: '#000', fontWeight: '800', fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 8px 30px rgba(184,134,11,0.35)', marginBottom: '20px' }}>
-          <Check size={18} color="#000" strokeWidth={2.5} /> ሂሳብ ፍጠር
+          <Check size={18} color="#000" strokeWidth={2.5} /> {t('signUp')}
         </button>
         <p style={{ textAlign: 'center', fontSize: '13px', color: '#666' }}>
-          ሂሳብ አለዎ?{' '}
-          <button onClick={() => setScreen('login')} style={{ background: 'none', border: 'none', color: '#B8860B', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}>ይግቡ</button>
+          {t('alreadyHave')}{' '}
+          <button onClick={() => setScreen('login')} style={{ background: 'none', border: 'none', color: '#B8860B', fontWeight: '700', fontSize: '13px', cursor: 'pointer' }}>{t('signIn')}</button>
         </p>
       </div>
       {toast && <Toast msg={toast} />}
@@ -469,7 +553,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
 };
 
 // ===================== MAIN APP =====================
-const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) => {
+const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appLang }) => {
+  const t = useT(appLang);
   const [activeTab, setActiveTab] = useState('home');
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeChat, setActiveChat] = useState(null);
@@ -477,18 +562,6 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
   const [showPlayer, setShowPlayer] = useState(false);
   const [currentTrack, setCurrentTrack] = useState(PLAYLIST[0]);
   const [newPost, setNewPost] = useState('');
- useEffect(() => {
-  const loadPosts = async () => {
-    const { data, error } = await supabase
-      .from('posts')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (data && data.length > 0) {
-      setPosts(data.map(p => ({ ...p, comments: [] })));
-    }
-  };
-  loadPosts();
-}, []); 
   const [chatMsg, setChatMsg] = useState('');
   const [liveInput, setLiveInput] = useState('');
   const [notification, setNotification] = useState({ show: false, message: '' });
@@ -506,22 +579,17 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
   const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [verifyCode, setVerifyCode] = useState('');
   const [verifyStatus, setVerifyStatus] = useState(null);
-  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
-
-  // ===== NEW: Comment & Photo states =====
   const [openCommentPostId, setOpenCommentPostId] = useState(null);
   const [commentInputs, setCommentInputs] = useState({});
-  const [selectedPhoto, setSelectedPhoto] = useState(null); // { url, name }
-  const [newPostType, setNewPostType] = useState('text'); // 'text' | 'photo'
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
   const photoInputRef = useRef(null);
-
   const ADMIN_CODE = 'HENON2024';
 
   const [posts, setPosts] = useState([
-    { id: 1, type: 'text', author: 'ደ/ዘማርያም ቤ/ክ', initials: 'ደዘ', color: '#B8860B', text: 'የትንሳኤ በዓል ዝግጅት በደመቀ ሁኔታ እየተከናወነ ይገኛል። ሁላችሁም ተጋብዛችኋል!', time: '2 ሰዓት በፊት', prayers: 120, likes: 450, views: '1.2k', comments: [{ id: 1, author: 'ዳዊት', initials: 'ዳዊ', color: '#4facfe', text: 'አሜን! እናስበቃለን ☦️', time: '1 ሰዓት' }] },
+    { id: 1, type: 'text', author: 'ደ/ዘማርያም ቤ/ክ', initials: 'ደዘ', color: '#B8860B', text: 'የትንሳኤ በዓል ዝግጅት በደመቀ ሁኔታ እየተከናወነ ይገኛል።', time: '2 ሰዓት በፊት', prayers: 120, likes: 450, views: '1.2k', comments: [] },
     { id: 2, type: 'photo', author: 'ዘማሪ ምርትነሽ', initials: 'ዘም', color: '#4facfe', text: 'አዲስ ዝማሬ በቅርቡ ይጠብቁ!', time: '5 ሰዓት በፊት', prayers: 85, likes: 900, views: '5k', comments: [] },
     { id: 3, type: 'video', author: 'ዲያቆን ኃይሉ', initials: 'ዲኃ', color: '#fa709a', text: '"እናንተ የዓለም ብርሃን ናችሁ" (ማቴ 5:14)', duration: '12:30', time: '8 ሰዓት በፊት', prayers: 300, likes: 1200, views: '10k', comments: [] },
-    { id: 4, type: 'news', author: 'ሄኖን ዜና', initials: 'ሄዜ', color: '#fee140', text: 'ታላቁ ዐቢይ ጾም ዛሬ ይጀምራል - አብያተ ክርስቲያናት ዝግጅታቸውን አጠናቀቁ።', time: '1 ሰዓት በፊት', prayers: 200, likes: 780, views: '8k', comments: [], isNews: true },
+    { id: 4, type: 'news', author: 'ሄኖን ዜና', initials: 'ሄዜ', color: '#fee140', text: 'ታላቁ ዐቢይ ጾም ዛሬ ይጀምራል።', time: '1 ሰዓት በፊት', prayers: 200, likes: 780, views: '8k', comments: [], isNews: true },
   ]);
 
   const [messages, setMessages] = useState([
@@ -532,72 +600,51 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
   const [liveComments, setLiveComments] = useState([
     { user: 'ሄኖክ', msg: 'ቃለ ሕይወት ያሰማልን!' },
     { user: 'ማርታ', msg: 'አሜን! ለሁላችንም በረከቱን ያድለን።' },
-    { user: 'ዳዊት', msg: 'ተባረኩ! ትምህርቱ እጅግ ጠቃሚ ነው።' },
   ]);
+
+  useEffect(() => {
+    const loadPosts = async () => {
+      const { data } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
+      if (data && data.length > 0) setPosts(data.map(p => ({ ...p, comments: [] })));
+    };
+    loadPosts();
+  }, []);
 
   const triggerToast = (msg) => {
     setNotification({ show: true, message: msg });
     setTimeout(() => setNotification({ show: false, message: '' }), 3000);
   };
 
-  // ===== Photo picker handler =====
   const handlePhotoPick = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      setSelectedPhoto({ url: ev.target.result, name: file.name });
-      setNewPostType('photo');
-    };
+    reader.onload = (ev) => setSelectedPhoto({ url: ev.target.result, name: file.name });
     reader.readAsDataURL(file);
   };
 
-  // ===== Post handler with photo support =====
- const handlePost = async () => {
-  if (!newPost.trim() && !selectedPhoto) 
-    return triggerToast('ጽሑፍ ወይም ፎቶ ያስፈልጋል!');
-  
-  const { data, error } = await supabase
-    .from('posts')
-    .insert([{
-      text: newPost,
-      author: user.name,
-      initials: user.name.slice(0, 2).toUpperCase(),
-      color: '#B8860B',
+  const handlePost = async () => {
+    if (!newPost.trim() && !selectedPhoto) return triggerToast('ጽሑፍ ወይም ፎቶ ያስፈልጋል!');
+    const { data, error } = await supabase.from('posts').insert([{
+      text: newPost, author: user.name,
+      initials: user.name.slice(0, 2).toUpperCase(), color: '#B8860B',
       type: selectedPhoto ? 'photo' : 'text',
       photo_url: selectedPhoto ? selectedPhoto.url : null,
-      user_email: user.email,
-      likes: 0,
-      prayers: 0,
-    }])
-    .select();
+      user_email: user.email, likes: 0, prayers: 0,
+    }]).select();
+    if (error) { triggerToast('Post አልተጋራም: ' + error.message); }
+    else {
+      setPosts([{ ...data[0], comments: [], time: 'አሁን', views: '1' }, ...posts]);
+      setNewPost(''); setSelectedPhoto(null);
+      triggerToast('መልዕክት ተጋርቷል! 🙏');
+    }
+  };
 
-  if (error) {
-    triggerToast('Post አልተጋራም: ' + error.message);
-  } else {
-    const post = { ...data[0], comments: [], time: 'አሁን', views: '1' };
-    setPosts([post, ...posts]);
-    setNewPost('');
-    setSelectedPhoto(null);
-    setNewPostType('text');
-    triggerToast('መልዕክት ተጋርቷል! 🙏');
-  }
-};
-  // ===== Comment handler =====
   const handleAddComment = (postId) => {
     const text = (commentInputs[postId] || '').trim();
     if (!text) return;
-    const newComment = {
-      id: Date.now(),
-      author: user.name,
-      initials: user.name.slice(0, 2).toUpperCase(),
-      color: '#B8860B',
-      text,
-      time: 'አሁን'
-    };
-    setPosts(prev => prev.map(p =>
-      p.id === postId ? { ...p, comments: [...p.comments, newComment] } : p
-    ));
+    const newComment = { id: Date.now(), author: user.name, initials: user.name.slice(0, 2).toUpperCase(), color: '#B8860B', text, time: 'አሁን' };
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, comments: [...p.comments, newComment] } : p));
     setCommentInputs(prev => ({ ...prev, [postId]: '' }));
   };
 
@@ -609,10 +656,8 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
   };
 
   const playSong = (song) => {
-    setCurrentTrack(song);
-    setShowPlayer(true);
-    setIsPlaying(true);
-    triggerToast(`በመጫወት ላይ: ${song.title}`);
+    setCurrentTrack(song); setShowPlayer(true); setIsPlaying(true);
+    triggerToast(`${t('nowPlaying')} ${song.title}`);
   };
 
   const handleVideoSwipe = (dir) => {
@@ -623,120 +668,74 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
   const handleVerify = () => {
     if (verifyCode === ADMIN_CODE) {
       setVerifyStatus('verified');
-      triggerToast('✅ ማረጋገጫ ምልክት ተሰጥቷል!');
-      setShowVerifyModal(false);
-      setVerifyCode('');
-    } else {
-      triggerToast('❌ ኮዱ ትክክል አይደለም!');
-    }
+      triggerToast(t('verifySuccess'));
+      setShowVerifyModal(false); setVerifyCode('');
+    } else { triggerToast(t('verifyFail')); }
   };
-
-  const menuItems = [
-    { id: 'fasting', Icon: Calendar, label: 'ጾምና ዝክር' },
-    { id: 'bible', Icon: BookOpen, label: 'ቃለ እግዚአብሔር' },
-    { id: 'playlist', Icon: Headphones, label: 'ያሬዳዊ ዝማሬ' },
-    { id: 'saints', Icon: Crown, label: 'የቅዱሳን ዝክር' },
-  ];
-
-  const mainTabs = [
-    { id: 'home', Icon: Compass, label: 'መነሻ' },
-    { id: 'video', Icon: Clapperboard, label: 'ቪዲዮ' },
-    { id: 'upload', Icon: Zap, label: 'አጋራ', special: true },
-    { id: 'chat', Icon: MessageCircle, label: 'መልዕክት' },
-    { id: 'live', Icon: Rss, label: 'Live' },
-    { id: 'profile', Icon: User, label: 'እኔ' },
-  ];
 
   const userInitials = user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   const isVerified = verifyStatus === 'verified' || VERIFIED_USERS.includes(user.name);
 
-  // ===== ENHANCED POST CARD with Comments & Photo =====
+  const menuItems = [
+    { id: 'fasting', Icon: Calendar, label: t('fasting') },
+    { id: 'bible', Icon: BookOpen, label: t('bible') },
+    { id: 'playlist', Icon: Headphones, label: t('playlist') },
+    { id: 'saints', Icon: Crown, label: t('saints') },
+  ];
+
+  const mainTabs = [
+    { id: 'home', Icon: Compass, label: t('home') },
+    { id: 'video', Icon: Clapperboard, label: t('video') },
+    { id: 'upload', Icon: Zap, label: t('share'), special: true },
+    { id: 'chat', Icon: MessageCircle, label: t('message') },
+    { id: 'live', Icon: Rss, label: t('live') },
+    { id: 'profile', Icon: User, label: t('profile') },
+  ];
+
   const PostCard = ({ p }) => {
     const isCommentOpen = openCommentPostId === p.id;
     const commentText = commentInputs[p.id] || '';
-
     return (
       <div style={{ backgroundColor: '#1A1508', borderRadius: '20px', marginBottom: '14px', border: '1px solid #2a2010', overflow: 'hidden' }}>
-        {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px 10px' }}>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <Avatar initials={p.initials} color={p.color} size={40} />
             <div>
               <div style={{ fontWeight: '700', color: '#F0E6C8', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {p.author}
-                {VERIFIED_USERS.includes(p.author) && <BadgeCheck size={14} color="#B8860B" strokeWidth={1.8} />}
+                {p.author} {VERIFIED_USERS.includes(p.author) && <BadgeCheck size={14} color="#B8860B" strokeWidth={1.8} />}
               </div>
               <div style={{ fontSize: '11px', color: '#B8860B', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <IC size={10}><Clock /></IC> {p.time}
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {p.isNews && (
-              <span style={{ background: '#B8860B22', border: '1px solid #B8860B55', padding: '2px 8px', borderRadius: '8px', fontSize: '10px', color: '#B8860B', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <IC size={10}><Newspaper /></IC> ዜና
-              </span>
-            )}
-            <IC color="#444"><SlidersHorizontal /></IC>
-          </div>
+          {p.isNews && (
+            <span style={{ background: '#B8860B22', border: '1px solid #B8860B55', padding: '2px 8px', borderRadius: '8px', fontSize: '10px', color: '#B8860B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <IC size={10}><Newspaper /></IC> ዜና
+            </span>
+          )}
         </div>
-
-        {/* Photo from gallery (user uploaded) */}
-        {p.photoUrl && (
+        {p.photo_url && (
           <div style={{ width: '100%', maxHeight: '320px', overflow: 'hidden' }}>
-            <img src={p.photoUrl} alt="post" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
+            <img src={p.photo_url} alt="post" style={{ width: '100%', objectFit: 'cover', display: 'block' }} />
           </div>
         )}
-
-        {/* Placeholder for video/photo without real upload */}
-        {!p.photoUrl && (p.type === 'photo' || p.type === 'video') && (
+        {!p.photo_url && (p.type === 'photo' || p.type === 'video') && (
           <div style={{ width: '100%', aspectRatio: '16/9', background: 'linear-gradient(135deg,#0D0A06,#1f1608)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', cursor: 'pointer' }}
             onClick={() => triggerToast(p.type === 'video' ? 'ቪዲዮ እየተጫወተ...' : 'ፎቶ')}>
             <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(184,134,11,0.15)', border: '1px solid rgba(184,134,11,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <IC size={28} color="#B8860B">{p.type === 'video' ? <PlayCircle /> : <Image />}</IC>
             </div>
-            {p.duration && (
-              <div style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.75)', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <IC size={10} color="#B8860B"><Clock /></IC> {p.duration}
-              </div>
-            )}
+            {p.duration && <div style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.75)', padding: '3px 8px', borderRadius: '6px', fontSize: '11px' }}>{p.duration}</div>}
           </div>
         )}
-
-        {/* Text */}
-        {p.text ? (
-          <div style={{ padding: '10px 16px 8px' }}>
-            <p style={{ lineHeight: '1.7', color: '#ddd', margin: 0, fontSize: '14px' }}>{p.text}</p>
-          </div>
-        ) : null}
-
-        {/* Action buttons */}
+        {p.text ? <div style={{ padding: '10px 16px 8px' }}><p style={{ lineHeight: '1.7', color: '#ddd', margin: 0, fontSize: '14px' }}>{p.text}</p></div> : null}
         <div style={{ display: 'flex', justifyContent: 'space-around', borderTop: '1px solid #2a2010', padding: '8px 4px' }}>
           {[
-            {
-              Icon: Heart,
-              label: p.likes + (likedPosts[p.id] ? 1 : 0),
-              active: likedPosts[p.id],
-              activeColor: '#FF4500',
-              action: () => setLikedPosts(prev => ({ ...prev, [p.id]: !prev[p.id] }))
-            },
-            {
-              Icon: HandHeart,
-              label: p.prayers,
-              action: () => triggerToast('ጸሎት ተመዝግቧል 🙏')
-            },
-            {
-              Icon: MessageCircle,
-              label: p.comments.length,
-              active: isCommentOpen,
-              activeColor: '#B8860B',
-              action: () => setOpenCommentPostId(isCommentOpen ? null : p.id)
-            },
-            {
-              Icon: Share2,
-              label: 'አጋራ',
-              action: () => triggerToast('ተጋርቷል!')
-            },
+            { Icon: Heart, label: p.likes + (likedPosts[p.id] ? 1 : 0), active: likedPosts[p.id], activeColor: '#FF4500', action: () => setLikedPosts(prev => ({ ...prev, [p.id]: !prev[p.id] })) },
+            { Icon: HandHeart, label: p.prayers, action: () => triggerToast(t('prayer')) },
+            { Icon: MessageCircle, label: p.comments.length, active: isCommentOpen, activeColor: '#B8860B', action: () => setOpenCommentPostId(isCommentOpen ? null : p.id) },
+            { Icon: Share2, label: t('share'), action: () => triggerToast(t('shared')) },
           ].map(({ Icon: Ic, label, active, activeColor, action }, i) => (
             <button key={i} onClick={action} style={{ background: 'none', border: 'none', color: active ? activeColor : '#666', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '4px 8px' }}>
               <IC size={18} color={active ? activeColor : '#666'}><Ic /></IC>
@@ -744,46 +743,27 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
             </button>
           ))}
         </div>
-
-        {/* ===== COMMENT SECTION ===== */}
         {isCommentOpen && (
           <div style={{ borderTop: '1px solid #2a2010', padding: '12px 14px' }}>
-            {/* Existing comments */}
-            {p.comments.length > 0 && (
-              <div style={{ marginBottom: '12px' }}>
-                {p.comments.map((c) => (
-                  <div key={c.id} style={{ display: 'flex', gap: '8px', marginBottom: '10px', alignItems: 'flex-start' }}>
-                    <Avatar initials={c.initials} color={c.color} size={30} fontSize={11} />
-                    <div style={{ flex: 1, background: '#0D0A06', borderRadius: '12px', padding: '8px 12px', border: '1px solid #2a2010' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: '700', color: '#B8860B' }}>{c.author}</span>
-                        <span style={{ fontSize: '10px', color: '#555' }}>{c.time}</span>
-                      </div>
-                      <p style={{ margin: 0, fontSize: '13px', color: '#ddd', lineHeight: '1.5' }}>{c.text}</p>
-                    </div>
-                  </div>
-                ))}
+            {p.comments.length === 0 && <p style={{ textAlign: 'center', color: '#444', fontSize: '12px', marginBottom: '12px' }}>{t('noComments')}</p>}
+            {p.comments.map((c) => (
+              <div key={c.id} style={{ display: 'flex', gap: '8px', marginBottom: '10px', alignItems: 'flex-start' }}>
+                <Avatar initials={c.initials} color={c.color} size={30} fontSize={11} />
+                <div style={{ flex: 1, background: '#0D0A06', borderRadius: '12px', padding: '8px 12px', border: '1px solid #2a2010' }}>
+                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#B8860B' }}>{c.author} </span>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#ddd' }}>{c.text}</p>
+                </div>
               </div>
-            )}
-            {p.comments.length === 0 && (
-              <p style={{ textAlign: 'center', color: '#444', fontSize: '12px', marginBottom: '12px' }}>
-                ፊት ለፊቱ አስተያየት ይስጡ ☦️
-              </p>
-            )}
-            {/* Comment input */}
+            ))}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <Avatar initials={userInitials} color="#B8860B" size={32} fontSize={11} />
               <div style={{ flex: 1, display: 'flex', gap: '6px', background: '#0D0A06', border: '1px solid #2a2010', borderRadius: '20px', padding: '6px 10px 6px 14px', alignItems: 'center' }}>
-                <input
-                  value={commentText}
-                  onChange={e => setCommentInputs(prev => ({ ...prev, [p.id]: e.target.value }))}
+                <input value={commentText} onChange={e => setCommentInputs(prev => ({ ...prev, [p.id]: e.target.value }))}
                   onKeyDown={e => e.key === 'Enter' && handleAddComment(p.id)}
-                  placeholder="አስተያየት ይስጡ..."
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#F0E6C8', fontSize: '13px', fontFamily: 'inherit' }}
-                />
-                <button
-                  onClick={() => handleAddComment(p.id)}
-                  style={{ background: commentText ? '#B8860B' : '#2a2010', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'background 0.2s' }}>
+                  placeholder={t('commentPlaceholder')}
+                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#F0E6C8', fontSize: '13px', fontFamily: 'inherit' }} />
+                <button onClick={() => handleAddComment(p.id)}
+                  style={{ background: commentText ? '#B8860B' : '#2a2010', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   <Send size={13} color={commentText ? '#000' : '#555'} strokeWidth={2} />
                 </button>
               </div>
@@ -794,17 +774,15 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
     );
   };
 
-  // HOME with photo upload in post box
   const renderHome = () => (
     <div style={{ paddingBottom: '20px' }}>
-      {/* Stories */}
-      <div style={{ overflowX: 'auto', overflowY: 'hidden', paddingBottom: '12px', marginBottom: '16px', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}>
-        <div style={{ display: 'flex', gap: '12px', width: 'max-content', paddingRight: '4px' }}>
+      <div style={{ overflowX: 'auto', overflowY: 'hidden', paddingBottom: '12px', marginBottom: '16px', scrollbarWidth: 'none' }}>
+        <div style={{ display: 'flex', gap: '12px', width: 'max-content' }}>
           <div style={{ flexShrink: 0, textAlign: 'center', cursor: 'pointer' }} onClick={() => setActiveTab('upload')}>
-            <div style={{ width: '58px', height: '58px', borderRadius: '50%', background: 'linear-gradient(135deg,#B8860B,#FFD700)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #B8860B55' }}>
+            <div style={{ width: '58px', height: '58px', borderRadius: '50%', background: 'linear-gradient(135deg,#B8860B,#FFD700)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <IC size={24} color="#000"><Plus /></IC>
             </div>
-            <div style={{ fontSize: '10px', color: '#B8860B', marginTop: '5px' }}>አክል</div>
+            <div style={{ fontSize: '10px', color: '#B8860B', marginTop: '5px' }}>{t('addStory')}</div>
           </div>
           {[
             { initials: 'ደዘ', color: '#B8860B', n: 'ደ/ዘማርያም' },
@@ -812,8 +790,6 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
             { initials: 'ዲኃ', color: '#fa709a', n: 'ዲ/ኃይሉ' },
             { initials: 'አቅ', color: '#43e97b', n: 'አቡነ ቅ.' },
             { initials: 'ጸቡ', color: '#f093fb', n: 'ጸሎት' },
-            { initials: 'ቅእ', color: '#fee140', n: 'ቅ.እስጢፋ.' },
-            { initials: 'ወህ', color: '#fa709a', n: 'ወ/ሮ ህይወት' },
           ].map((s, i) => (
             <div key={i} style={{ flexShrink: 0, textAlign: 'center', cursor: 'pointer' }}>
               <div style={{ padding: '2px', borderRadius: '50%', background: 'linear-gradient(135deg,#B8860B,#FFD700)' }}>
@@ -824,39 +800,25 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
           ))}
         </div>
       </div>
-
-      {/* Enhanced Post Box */}
       <div style={{ backgroundColor: '#1A1508', borderRadius: '16px', padding: '14px', marginBottom: '16px', border: '1px solid #2a2010' }}>
         <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
           <Avatar initials={userInitials} color="#B8860B" size={38} />
-          <textarea
-            placeholder="ምስክርነትዎን ወይም ጸሎትዎን ያጋሩ..."
-            value={newPost}
-            onChange={(e) => setNewPost(e.target.value)}
-            style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', outline: 'none', fontSize: '14px', minHeight: '56px', resize: 'none', fontFamily: 'inherit' }}
-          />
+          <textarea placeholder={t('postPlaceholder')} value={newPost} onChange={(e) => setNewPost(e.target.value)}
+            style={{ flex: 1, background: 'transparent', border: 'none', color: '#fff', outline: 'none', fontSize: '14px', minHeight: '56px', resize: 'none', fontFamily: 'inherit' }} />
         </div>
-
-        {/* Photo preview */}
         {selectedPhoto && (
           <div style={{ position: 'relative', marginBottom: '10px', borderRadius: '12px', overflow: 'hidden' }}>
             <img src={selectedPhoto.url} alt="preview" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block', borderRadius: '12px' }} />
-            <button
-              onClick={() => { setSelectedPhoto(null); setNewPostType('text'); }}
-              style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+            <button onClick={() => setSelectedPhoto(null)} style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
               <X size={14} color="#fff" />
             </button>
           </div>
         )}
-
         <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #2a2010', paddingTop: '10px' }}>
           <div style={{ display: 'flex', gap: '4px' }}>
-            {/* Photo picker button */}
-            <button
-              onClick={() => photoInputRef.current && photoInputRef.current.click()}
-              style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px' }}>
+            <button onClick={() => photoInputRef.current && photoInputRef.current.click()} style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <IC size={20} color="#B8860B"><Camera /></IC>
-              <span style={{ color: '#B8860B', fontSize: '11px' }}>ፎቶ</span>
+              <span style={{ color: '#B8860B', fontSize: '11px' }}>{t('photoLabel')}</span>
             </button>
             <input ref={photoInputRef} type="file" accept="image/*" onChange={handlePhotoPick} style={{ display: 'none' }} />
             <button onClick={() => setActiveTab('upload')} style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex' }}>
@@ -867,16 +829,14 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
             </button>
           </div>
           <button onClick={handlePost} style={{ backgroundColor: '#B8860B', border: 'none', borderRadius: '20px', padding: '8px 20px', color: '#000', fontWeight: '700', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <IC size={14} color="#000"><Send /></IC> አጋራ
+            <IC size={14} color="#000"><Send /></IC> {t('postBtn')}
           </button>
         </div>
       </div>
-
-      {posts.filter(p => p.text.toLowerCase().includes(searchQuery.toLowerCase())).map(p => <PostCard key={p.id} p={p} />)}
+      {posts.filter(p => !searchQuery || p.text?.toLowerCase().includes(searchQuery.toLowerCase())).map(p => <PostCard key={p.id} p={p} />)}
     </div>
   );
 
-  // VIDEO FEED
   const renderVideoFeed = () => {
     const video = VIDEOS[currentVideoIndex];
     if (!video.isLong) {
@@ -885,25 +845,19 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
           <button onClick={() => setActiveTab('home')} style={{ position: 'absolute', top: '20px', left: '16px', zIndex: 10, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', cursor: 'pointer', borderRadius: '50%', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <IC size={20} color="#fff"><ArrowLeft /></IC>
           </button>
-          <div style={{ position: 'absolute', top: '18px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.5)', padding: '4px 14px', borderRadius: '10px', fontSize: '11px', color: '#B8860B', zIndex: 5 }}>{currentVideoIndex + 1}/{VIDEOS.length}</div>
           <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#0D0A06,#1A1508)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <button onClick={() => setIsPlaying(!isPlaying)} style={{ background: 'rgba(184,134,11,0.25)', border: '1px solid rgba(184,134,11,0.5)', borderRadius: '50%', width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
               <IC size={28} color="#B8860B">{isPlaying ? <Pause /> : <PlayCircle />}</IC>
             </button>
           </div>
           <div style={{ position: 'absolute', right: '12px', bottom: '110px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', zIndex: 5 }}>
-            <div style={{ position: 'relative' }}>
-              <Avatar initials={video.initials} color={video.color} size={44} />
-              <div style={{ position: 'absolute', bottom: '-8px', left: '50%', transform: 'translateX(-50%)', background: '#B8860B', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <IC size={11} color="#000"><UserPlus /></IC>
-              </div>
-            </div>
+            <Avatar initials={video.initials} color={video.color} size={44} />
             {[
               { Icon: Heart, count: video.likes + (likedVideos[video.id] ? 1 : 0), active: likedVideos[video.id], action: () => setLikedVideos(p => ({ ...p, [video.id]: !p[video.id] })) },
-              { Icon: HandHeart, count: video.prayers, active: prayedVideos[video.id], action: () => { setPrayedVideos(p => ({ ...p, [video.id]: !p[video.id] })); triggerToast('ጸሎት ተመዝግቧል!'); } },
+              { Icon: HandHeart, count: video.prayers, action: () => triggerToast(t('prayer')) },
               { Icon: MessageCircle, count: video.comments, action: () => triggerToast('አስተያየቶች') },
-              { Icon: BookMarked, count: 'አስቀምጥ', active: savedVideos[video.id], action: () => { setSavedVideos(p => ({ ...p, [video.id]: !p[video.id] })); triggerToast('ተቀምጧል!'); } },
-              { Icon: Share2, count: 'አጋራ', action: () => triggerToast('ተጋርቷል!') },
+              { Icon: BookMarked, count: t('saved'), active: savedVideos[video.id], action: () => { setSavedVideos(p => ({ ...p, [video.id]: !p[video.id] })); triggerToast(t('saved')); } },
+              { Icon: Share2, count: t('share'), action: () => triggerToast(t('shared')) },
             ].map(({ Icon: Ic, count, active, action }, i) => (
               <div key={i} style={{ textAlign: 'center', cursor: 'pointer' }} onClick={action}>
                 <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -914,14 +868,9 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
             ))}
           </div>
           <div style={{ position: 'absolute', bottom: '72px', left: '12px', right: '66px', zIndex: 5 }}>
-            <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              {video.author} {video.verified && <BadgeCheck size={14} color="#B8860B" />}
-            </div>
+            <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '4px' }}>{video.author} {video.verified && <BadgeCheck size={14} color="#B8860B" />}</div>
             <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', marginBottom: '6px' }}>{video.title}</div>
             <span style={{ background: 'rgba(184,134,11,0.2)', border: '1px solid rgba(184,134,11,0.4)', padding: '2px 10px', borderRadius: '10px', fontSize: '11px', color: '#B8860B' }}>{video.tag}</span>
-          </div>
-          <div style={{ position: 'absolute', bottom: '58px', left: 0, right: 0, height: '2px', background: 'rgba(255,255,255,0.15)' }}>
-            <div style={{ width: '38%', height: '100%', background: 'linear-gradient(90deg,#B8860B,#FFD700)' }}></div>
           </div>
           <div style={{ position: 'absolute', bottom: '14px', left: 0, right: 0, display: 'flex', justifyContent: 'space-around', zIndex: 5 }}>
             <button onClick={() => handleVideoSwipe('down')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', cursor: 'pointer', borderRadius: '20px', padding: '7px 20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -942,64 +891,48 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
               <IC size={26} color="#000">{isPlaying ? <Pause /> : <PlayCircle />}</IC>
             </button>
           </div>
-          <div style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.75)', padding: '3px 8px', borderRadius: '6px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <IC size={10} color="#B8860B"><Clock /></IC> {video.duration}
-          </div>
-          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '3px', background: 'rgba(255,255,255,0.1)' }}>
-            <div style={{ width: '30%', height: '100%', background: '#B8860B' }}></div>
-          </div>
+          <div style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.75)', padding: '3px 8px', borderRadius: '6px', fontSize: '11px' }}>{video.duration}</div>
         </div>
-        <div style={{ padding: '0 2px' }}>
-          <h3 style={{ margin: '0 0 10px', fontSize: '16px', lineHeight: '1.4', color: '#F0E6C8' }}>{video.title}</h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Avatar initials={video.initials} color={video.color} size={36} />
-              <div>
-                <div style={{ fontSize: '13px', fontWeight: '700', color: '#F0E6C8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  {video.author} {video.verified && <BadgeCheck size={13} color="#B8860B" />}
-                </div>
-                <div style={{ fontSize: '11px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <IC size={10}><TrendingUp /></IC> {video.views}
-                </div>
+        <h3 style={{ margin: '0 0 10px', fontSize: '16px', color: '#F0E6C8' }}>{video.title}</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Avatar initials={video.initials} color={video.color} size={36} />
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#F0E6C8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                {video.author} {video.verified && <BadgeCheck size={13} color="#B8860B" />}
               </div>
+              <div style={{ fontSize: '11px', color: '#888' }}>{video.views}</div>
             </div>
-            <button style={{ background: '#B8860B', border: 'none', borderRadius: '20px', padding: '7px 16px', color: '#000', fontWeight: '700', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <IC size={13} color="#000"><UserPlus /></IC> ተከተል
+          </div>
+          <button style={{ background: '#B8860B', border: 'none', borderRadius: '20px', padding: '7px 16px', color: '#000', fontWeight: '700', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <IC size={13} color="#000"><UserPlus /></IC> {t('follow')}
+          </button>
+        </div>
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }}>
+          {[
+            { Icon: Heart, label: video.likes, action: () => setLikedVideos(p => ({ ...p, [video.id]: !p[video.id] })) },
+            { Icon: HandHeart, label: video.prayers, action: () => triggerToast(t('prayer')) },
+            { Icon: Download, label: t('downloaded'), action: () => triggerToast(t('downloaded')) },
+            { Icon: BookMarked, label: t('saved'), action: () => triggerToast(t('saved')) },
+            { Icon: Share2, label: t('share'), action: () => triggerToast(t('shared')) },
+          ].map(({ Icon: Ic, label, action }, i) => (
+            <button key={i} onClick={action} style={{ background: '#1A1508', border: '1px solid #2a2010', borderRadius: '20px', padding: '7px 14px', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <IC size={14} color="#888"><Ic /></IC> {label}
             </button>
-          </div>
-          <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }}>
-            {[
-              { Icon: Heart, label: video.likes + (likedVideos[video.id] ? 1 : 0), active: likedVideos[video.id], action: () => setLikedVideos(p => ({ ...p, [video.id]: !p[video.id] })) },
-              { Icon: HandHeart, label: video.prayers, action: () => triggerToast('ጸሎት!') },
-              { Icon: MessageCircle, label: video.comments, action: () => triggerToast('አስተያየት') },
-              { Icon: Download, label: 'አውርድ', action: () => triggerToast('ወረደ!') },
-              { Icon: BookMarked, label: 'አስቀምጥ', action: () => triggerToast('ተቀምጧል!') },
-              { Icon: Share2, label: 'አጋራ', action: () => triggerToast('ተጋርቷ!') },
-            ].map(({ Icon: Ic, label, active, action }, i) => (
-              <button key={i} onClick={action} style={{ background: '#1A1508', border: `1px solid ${active ? '#B8860B' : '#2a2010'}`, borderRadius: '20px', padding: '7px 14px', color: active ? '#B8860B' : '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                <IC size={14} color={active ? '#B8860B' : '#888'}><Ic /></IC> {label}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
         <div style={{ marginTop: '18px' }}>
-          <h4 style={{ color: '#B8860B', marginBottom: '12px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <IC size={16} color="#B8860B"><LayoutGrid /></IC> ተዛማጅ ቪዲዮዎች
-          </h4>
+          <h4 style={{ color: '#B8860B', marginBottom: '12px', fontSize: '14px' }}>{t('relatedVideos')}</h4>
           {VIDEOS.filter((_, i) => i !== currentVideoIndex).map((v, i) => (
             <div key={i} onClick={() => setCurrentVideoIndex(VIDEOS.indexOf(v))} style={{ display: 'flex', gap: '10px', marginBottom: '12px', cursor: 'pointer' }}>
-              <div style={{ width: '120px', height: '70px', background: '#1A1508', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #2a2010', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ width: '120px', height: '70px', background: '#1A1508', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #2a2010', position: 'relative' }}>
                 <Avatar initials={v.initials} color={v.color} size={36} />
                 <div style={{ position: 'absolute', bottom: '4px', right: '4px', background: 'rgba(0,0,0,0.7)', padding: '1px 5px', borderRadius: '4px', fontSize: '9px' }}>{v.duration}</div>
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '13px', fontWeight: '600', lineHeight: '1.3', marginBottom: '4px', color: '#F0E6C8' }}>{v.title}</div>
-                <div style={{ fontSize: '11px', color: '#888', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  {v.author} {v.verified && <BadgeCheck size={11} color="#B8860B" />}
-                </div>
-                <div style={{ fontSize: '11px', color: '#B8860B', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                  <IC size={10} color="#B8860B"><TrendingUp /></IC> {v.views}
-                </div>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#F0E6C8' }}>{v.title}</div>
+                <div style={{ fontSize: '11px', color: '#888' }}>{v.author}</div>
+                <div style={{ fontSize: '11px', color: '#B8860B' }}>{v.views}</div>
               </div>
             </div>
           ))}
@@ -1010,21 +943,18 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
 
   const renderUpload = () => (
     <div style={{ paddingBottom: '20px' }}>
-      <h2 style={{ color: '#B8860B', marginBottom: '20px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-        <CrossIcon size={22} /> አዲስ ጋሪ
-      </h2>
+      <h2 style={{ color: '#B8860B', marginBottom: '20px', textAlign: 'center' }}>{t('addNew')}</h2>
       {!uploadType ? (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           {[
             { type: 'photo', Icon: Camera, label: 'ፎቶ / ምስል', desc: 'ካሜራ ወይም ጋለሪ', color: '#4facfe' },
             { type: 'video', Icon: Clapperboard, label: 'ቪዲዮ', desc: 'ቪዲዮ ቀረጻ', color: '#fa709a' },
-            { type: 'live', Icon: Rss, label: 'Live ይጀምሩ', desc: 'ቀጥታ ስርጭት', color: '#FF4444' },
+            { type: 'live', Icon: Rss, label: t('startLive'), desc: 'ቀጥታ ስርጭት', color: '#FF4444' },
             { type: 'news', Icon: Newspaper, label: 'ዜና / ጽሑፍ', desc: 'ጽሑፍ ወይም ዜና', color: '#fee140' },
             { type: 'audio', Icon: Mic2, label: 'ዝማሬ / ድምፅ', desc: 'ያሬዳዊ ዜማ', color: '#43e97b' },
             { type: 'story', Icon: Wand2, label: 'ስቶሪ', desc: '24 ሰዓት ይታያል', color: '#f093fb' },
           ].map(item => (
-            <div key={item.type} onClick={() => setUploadType(item.type)}
-              style={{ background: '#1A1508', border: '1px solid #2a2010', borderRadius: '18px', padding: '22px 14px', textAlign: 'center', cursor: 'pointer' }}>
+            <div key={item.type} onClick={() => setUploadType(item.type)} style={{ background: '#1A1508', border: '1px solid #2a2010', borderRadius: '18px', padding: '22px 14px', textAlign: 'center', cursor: 'pointer' }}>
               <div style={{ width: '52px', height: '52px', borderRadius: '16px', background: `${item.color}22`, border: `1px solid ${item.color}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
                 <IC size={24} color={item.color}><item.Icon /></IC>
               </div>
@@ -1036,52 +966,40 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
       ) : uploadType === 'live' ? (
         <div>
           <button onClick={() => setUploadType(null)} style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <IC size={18} color="#B8860B"><ArrowLeft /></IC> ተመለስ
+            <IC size={18} color="#B8860B"><ArrowLeft /></IC> {t('back')}
           </button>
           <div style={{ background: '#1A1508', borderRadius: '20px', padding: '22px', border: '1px solid #B8860B55' }}>
-            <div style={{ width: '100%', aspectRatio: '9/16', maxHeight: '50vh', background: '#000', borderRadius: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '18px', border: '1px solid #2a2010' }}>
-              <IC size={48} color="#333"><Video /></IC>
-              <div style={{ color: '#555', fontSize: '13px', marginTop: '10px' }}>ካሜራ ቅድመ-ዕይታ</div>
+            <div style={{ width: '100%', aspectRatio: '9/16', maxHeight: '50vh', background: '#000', borderRadius: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
+              <div style={{ color: '#555', fontSize: '13px' }}>{t('cameraPreview')}</div>
             </div>
             <input value={liveTitle} onChange={e => setLiveTitle(e.target.value)} placeholder="Live ርዕስ ያስገቡ..."
               style={{ width: '100%', background: '#0D0A06', border: '1px solid #333', color: '#fff', padding: '12px 16px', borderRadius: '12px', outline: 'none', marginBottom: '14px', boxSizing: 'border-box', fontSize: '14px', fontFamily: 'inherit' }} />
-            <button onClick={() => { if (liveTitle) { triggerToast('Live ተጀምሯል!'); setUploadType(null); setActiveTab('live'); } else triggerToast('ርዕስ ያስገቡ!'); }}
+            <button onClick={() => { if (liveTitle) { triggerToast(t('liveStarted')); setUploadType(null); setActiveTab('live'); } else triggerToast(t('enterTitle')); }}
               style={{ width: '100%', background: 'linear-gradient(90deg,#FF0000,#B80000)', border: 'none', borderRadius: '14px', padding: '15px', color: '#fff', fontWeight: '700', cursor: 'pointer', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <IC size={18} color="#fff"><Rss /></IC> Live ጀምር
+              <IC size={18} color="#fff"><Rss /></IC> {t('startLive')}
             </button>
           </div>
         </div>
       ) : (
         <div>
-          <button onClick={() => setUploadType(null)} style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}>
-            <IC size={18} color="#B8860B"><ArrowLeft /></IC> ተመለስ
+          <button onClick={() => setUploadType(null)} style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <IC size={18} color="#B8860B"><ArrowLeft /></IC> {t('back')}
           </button>
           <div style={{ background: '#1A1508', borderRadius: '20px', padding: '18px', border: '1px solid #2a2010' }}>
-            {/* Photo upload zone with real file picker */}
             <label htmlFor="upload-file-input" style={{ display: 'block', cursor: 'pointer' }}>
               <div style={{ width: '100%', aspectRatio: uploadType === 'video' ? '16/9' : '1/1', background: '#0D0A06', borderRadius: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', marginBottom: '14px', border: '2px dashed #2a2010' }}>
                 <IC size={40} color="#333"><UploadCloud /></IC>
-                <div style={{ color: '#B8860B', fontWeight: '700', marginTop: '10px', marginBottom: '4px' }}>ፋይል ምረጥ</div>
-                <div style={{ color: '#555', fontSize: '12px' }}>ጠቅ አድርግ ለመምረጥ</div>
+                <div style={{ color: '#B8860B', fontWeight: '700', marginTop: '10px' }}>{t('selectFile')}</div>
+                <div style={{ color: '#555', fontSize: '12px' }}>{t('dragDrop')}</div>
               </div>
             </label>
-            <input
-              id="upload-file-input"
-              type="file"
-              accept={uploadType === 'video' ? 'video/*' : uploadType === 'audio' ? 'audio/*' : 'image/*'}
-              style={{ display: 'none' }}
-              onChange={(e) => { if (e.target.files[0]) triggerToast(`${e.target.files[0].name} ተመርጧል!`); }}
-            />
-            <textarea value={uploadCaption} onChange={e => setUploadCaption(e.target.value)} placeholder="መግለጫ ያስገቡ..."
+            <input id="upload-file-input" type="file" accept={uploadType === 'video' ? 'video/*' : uploadType === 'audio' ? 'audio/*' : 'image/*'} style={{ display: 'none' }}
+              onChange={(e) => { if (e.target.files[0]) triggerToast(`${e.target.files[0].name} ተመርጧል!`); }} />
+            <textarea value={uploadCaption} onChange={e => setUploadCaption(e.target.value)} placeholder={t('description')}
               style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', minHeight: '80px', resize: 'none', marginBottom: '14px', boxSizing: 'border-box', fontSize: '14px', fontFamily: 'inherit' }} />
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
-              {['#ተዋህዶ', '#ቅዳሴ', '#ጸሎት', '#ዝማሬ', '#ምስክርነት'].map(tag => (
-                <button key={tag} onClick={() => setUploadCaption(prev => prev + ' ' + tag)} style={{ background: '#B8860B22', border: '1px solid #B8860B44', borderRadius: '20px', padding: '4px 12px', color: '#B8860B', cursor: 'pointer', fontSize: '12px' }}>{tag}</button>
-              ))}
-            </div>
-            <button onClick={() => { triggerToast('ተጫኗል!'); setUploadType(null); setUploadCaption(''); setActiveTab('home'); }}
+            <button onClick={() => { triggerToast(t('uploaded')); setUploadType(null); setUploadCaption(''); setActiveTab('home'); }}
               style={{ width: '100%', background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '14px', padding: '14px', color: '#000', fontWeight: '700', cursor: 'pointer', fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <IC size={18} color="#000"><UploadCloud /></IC> አጋራ
+              <IC size={18} color="#000"><UploadCloud /></IC> {t('share')}
             </button>
           </div>
         </div>
@@ -1094,8 +1012,8 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
       const stream = LIVE_STREAMS[activeLive];
       return (
         <div style={{ paddingBottom: '20px' }}>
-          <button onClick={() => setActiveLive(null)} style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}>
-            <IC size={18} color="#B8860B"><ArrowLeft /></IC> ተመለስ
+          <button onClick={() => setActiveLive(null)} style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <IC size={18} color="#B8860B"><ArrowLeft /></IC> {t('back')}
           </button>
           <div style={{ position: 'relative', width: '100%', aspectRatio: '9/16', background: '#000', borderRadius: '16px', overflow: 'hidden', marginBottom: '14px', maxHeight: '52vh' }}>
             <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#0D0A06,#1A1508)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1107,10 +1025,8 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
             <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'rgba(0,0,0,0.6)', padding: '3px 10px', borderRadius: '8px', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '5px' }}>
               <IC size={12} color="#B8860B"><Users /></IC> {stream.viewers.toLocaleString()}
             </div>
-            <div style={{ position: 'absolute', bottom: '12px', left: '12px', right: '12px' }}>
-              <div style={{ fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                {stream.author} {stream.verified && <BadgeCheck size={14} color="#B8860B" />}
-              </div>
+            <div style={{ position: 'absolute', bottom: '12px', left: '12px' }}>
+              <div style={{ fontWeight: '700', fontSize: '14px' }}>{stream.author} {stream.verified && <BadgeCheck size={14} color="#B8860B" />}</div>
               <div style={{ fontSize: '12px', color: '#B8860B' }}>{stream.title}</div>
             </div>
           </div>
@@ -1120,8 +1036,8 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
               {[0,1,2,3,4,5].map(i => (
-                <button key={i} onClick={() => triggerToast('ስጦታ ተልኳል!')} style={{ background: '#0D0A06', border: '1px solid #2a2010', borderRadius: '12px', padding: '10px', cursor: 'pointer', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {i === 0 ? <CrossIcon size={20} color="#B8860B" /> : i === 1 ? <CandleIcon size={20} color="#FFD700" /> : i === 2 ? <IC size={20} color="#B8860B"><Award /></IC> : i === 3 ? <IC size={20} color="#B8860B"><Heart /></IC> : i === 4 ? <IC size={20} color="#B8860B"><ListMusic /></IC> : <IC size={20} color="#B8860B"><Sparkles /></IC>}
+                <button key={i} onClick={() => triggerToast(t('giftSent'))} style={{ background: '#0D0A06', border: '1px solid #2a2010', borderRadius: '12px', padding: '10px', cursor: 'pointer', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {i === 0 ? <CrossIcon size={20} color="#B8860B" /> : i === 1 ? '🕯️' : i === 2 ? <IC size={20} color="#B8860B"><Award /></IC> : i === 3 ? <IC size={20} color="#B8860B"><Heart /></IC> : i === 4 ? <IC size={20} color="#B8860B"><ListMusic /></IC> : <Sparkles size={20} color="#B8860B" />}
                 </button>
               ))}
             </div>
@@ -1130,13 +1046,13 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
             <div style={{ height: '170px', overflowY: 'auto', marginBottom: '10px' }}>
               {liveComments.map((c, i) => (
                 <div key={i} style={{ marginBottom: '10px', display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#B8860B33', border: '1px solid #B8860B55', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '10px', fontWeight: '700', color: '#B8860B' }}>{c.user[0]}</div>
+                  <div style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#B8860B33', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: '700', color: '#B8860B' }}>{c.user[0]}</div>
                   <div><span style={{ color: '#B8860B', fontWeight: '700', fontSize: '12px' }}>{c.user} </span><span style={{ color: '#ddd', fontSize: '12px' }}>{c.msg}</span></div>
                 </div>
               ))}
             </div>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <input value={liveInput} onChange={(e) => setLiveInput(e.target.value)} placeholder="ሀሳብ ይስጡ..."
+              <input value={liveInput} onChange={(e) => setLiveInput(e.target.value)} placeholder={t('commentInput')}
                 style={{ flex: 1, background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '10px 14px', borderRadius: '20px', outline: 'none', fontSize: '13px', fontFamily: 'inherit' }} />
               <button onClick={() => { if (liveInput) { setLiveComments([...liveComments, { user: user.name.split(' ')[0], msg: liveInput }]); setLiveInput(''); } }}
                 style={{ background: '#B8860B', border: 'none', borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1151,19 +1067,17 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
       <div style={{ paddingBottom: '20px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h2 style={{ color: '#B8860B', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <IC size={20} color="#FF4444"><Rss /></IC> ቀጥታ ስርጭቶች
+            <IC size={20} color="#FF4444"><Rss /></IC> {t('liveStreams')}
           </h2>
           <button onClick={() => { setUploadType('live'); setActiveTab('upload'); }} style={{ background: '#FF000022', border: '1px solid #FF444466', borderRadius: '20px', padding: '6px 14px', color: '#FF6666', cursor: 'pointer', fontSize: '12px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px' }}>
-            <IC size={12} color="#FF6666"><Plus /></IC> Live ጀምር
+            <IC size={12} color="#FF6666"><Plus /></IC> {t('startLive')}
           </button>
         </div>
         {LIVE_STREAMS.map((s, i) => (
           <div key={i} onClick={() => setActiveLive(i)} style={{ background: '#1A1508', borderRadius: '16px', overflow: 'hidden', marginBottom: '14px', cursor: 'pointer', border: '1px solid #2a2010' }}>
             <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: 'linear-gradient(135deg,#0D0A06,#1A1508)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <Avatar initials={s.initials} color={s.color} size={60} fontSize={20} />
-              <div style={{ position: 'absolute', top: '10px', left: '10px', background: '#FF0000', padding: '2px 8px', borderRadius: '5px', fontSize: '10px', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <div style={{ width: '5px', height: '5px', background: '#fff', borderRadius: '50%' }}></div> LIVE
-              </div>
+              <div style={{ position: 'absolute', top: '10px', left: '10px', background: '#FF0000', padding: '2px 8px', borderRadius: '5px', fontSize: '10px', fontWeight: '700' }}>LIVE</div>
               <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(0,0,0,0.6)', padding: '2px 8px', borderRadius: '6px', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <IC size={10} color="#B8860B"><Users /></IC> {s.viewers.toLocaleString()}
               </div>
@@ -1187,7 +1101,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
     <div style={{ paddingBottom: '20px' }}>
       <div style={{ background: 'linear-gradient(135deg,#1A1508,#3d2b01)', padding: '20px', borderRadius: '16px', marginBottom: '16px', border: '1px solid #B8860B55', textAlign: 'center' }}>
         <CrossIcon size={28} color="#B8860B" />
-        <h2 style={{ color: '#B8860B', margin: '8px 0', fontSize: '18px' }}>ዕለታዊ ቃል</h2>
+        <h2 style={{ color: '#B8860B', margin: '8px 0', fontSize: '18px' }}>{t('daily')}</h2>
         <p style={{ fontSize: '15px', lineHeight: '1.6', fontStyle: 'italic', margin: '0 0 8px', color: '#F0E6C8' }}>"ቃልህ ለእግሬ መብራት ለመንገዴም ብርሃን ነው።"</p>
         <span style={{ fontSize: '12px', color: '#B8860B' }}>መዝሙር ፻፲፱:፻፭</span>
       </div>
@@ -1198,11 +1112,11 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
             <span style={{ color: '#B8860B', fontWeight: '700', fontSize: '13px' }}>{v.ref}</span>
             <div style={{ display: 'flex', gap: '4px' }}>
               {[
-                { Icon: Copy, action: () => triggerToast('ተቀድቷል!') },
-                { Icon: BookMarked, action: () => { setSavedVerses([...savedVerses, v]); triggerToast('ተቀምጧል!'); } },
-                { Icon: Share2, action: () => triggerToast('ተጋርቷል!') },
+                { Icon: Copy, action: () => triggerToast(t('copied')) },
+                { Icon: BookMarked, action: () => { setSavedVerses([...savedVerses, v]); triggerToast(t('saved')); } },
+                { Icon: Share2, action: () => triggerToast(t('shared')) },
               ].map(({ Icon: Ic, action }, i) => (
-                <button key={i} onClick={action} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#B8860B', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+                <button key={i} onClick={action} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', display: 'flex' }}>
                   <IC size={17} color="#B8860B"><Ic /></IC>
                 </button>
               ))}
@@ -1218,24 +1132,19 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
       <div style={{ background: '#1A1508', padding: '20px', borderRadius: '16px', marginBottom: '16px', textAlign: 'center', border: '2px solid #B8860B55' }}>
         <CrossIcon size={24} color="#B8860B" />
         <h1 style={{ margin: '8px 0 4px', color: '#B8860B', fontSize: '26px' }}>ሚያዝያ ፳፱</h1>
-        <p style={{ margin: 0, opacity: 0.8, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
-          <IC size={12}><Calendar /></IC> ሐሙስ • ፳፻፲፰ ዓ.ም
-        </p>
+        <p style={{ margin: 0, opacity: 0.8, fontSize: '13px' }}>ሐሙስ • ፳፻፲፰ ዓ.ም</p>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
         {FASTING_DAYS.map(f => (
           <div key={f.id} onClick={() => triggerToast(f.description)} style={{ background: '#1A1508', padding: '16px 12px', borderRadius: '14px', border: '1px solid #2a2010', cursor: 'pointer', textAlign: 'center' }}>
             <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>
-              {f.icon === 'candle' ? <CandleIcon size={24} color="#B8860B" /> : <CrossIcon size={24} color="#B8860B" />}
+              <CrossIcon size={24} color="#B8860B" />
             </div>
             <div style={{ fontWeight: '700', fontSize: '13px' }}>{f.name}</div>
             <div style={{ fontSize: '10px', color: '#B8860B', marginTop: '3px' }}>{f.status}</div>
           </div>
         ))}
       </div>
-      <h3 style={{ color: '#B8860B', marginBottom: '10px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <CandleIcon size={16} color="#B8860B" /> የቅዱሳን መታሰቢያ
-      </h3>
       {SAINTS.map((s, i) => (
         <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', backgroundColor: '#1A1508', borderRadius: '10px', marginBottom: '8px', border: '1px solid #2a2010', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1257,10 +1166,10 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
         <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', border: '2px solid rgba(255,255,255,0.2)' }}>
           <IC size={36} color="#fff"><Headphones /></IC>
         </div>
-        <h2 style={{ margin: '0 0 6px', fontSize: '18px' }}>ያሬዳዊ ዜማዎች</h2>
-        <p style={{ opacity: 0.85, fontSize: '12px', margin: '0 auto 16px' }}>መንፈስን የሚያድሱ ዝማሬዎች</p>
+        <h2 style={{ margin: '0 0 6px', fontSize: '18px' }}>{t('sacredMusic')}</h2>
+        <p style={{ opacity: 0.85, fontSize: '12px', margin: '0 auto 16px' }}>{t('renewSpirit')}</p>
         <button onClick={() => playSong(PLAYLIST[0])} style={{ background: '#fff', color: '#000', border: 'none', borderRadius: '20px', padding: '10px 26px', fontWeight: '700', cursor: 'pointer', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-          <IC size={14} color="#000"><PlayCircle /></IC> አጫውት
+          <IC size={14} color="#000"><PlayCircle /></IC> {t('playAll')}
         </button>
       </div>
       <div style={{ backgroundColor: '#1A1508', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2a2010' }}>
@@ -1273,10 +1182,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
               <div style={{ fontWeight: '600', color: currentTrack.id === song.id ? '#B8860B' : '#F0E6C8', fontSize: '14px' }}>{song.title}</div>
               <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>{song.artist}</div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '11px', color: '#555' }}>{song.duration}</span>
-              <IC size={14} color="#444"><SlidersHorizontal /></IC>
-            </div>
+            <span style={{ fontSize: '11px', color: '#555' }}>{song.duration}</span>
           </div>
         ))}
       </div>
@@ -1297,7 +1203,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
               <div style={{ fontWeight: '700', fontSize: '14px' }}>{chat.name}</div>
               <div style={{ fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px', color: chat.online ? '#4CAF50' : '#666' }}>
                 <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: chat.online ? '#4CAF50' : '#555' }}></div>
-                {chat.online ? 'መስመር ላይ' : 'ከቆይታ በፊት'}
+                {chat.online ? t('onlineText') : t('offlineText')}
               </div>
             </div>
           </div>
@@ -1306,15 +1212,13 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
               <div key={m.id} style={{ textAlign: m.mine ? 'right' : 'left', marginBottom: '12px' }}>
                 <div style={{ display: 'inline-block', backgroundColor: m.mine ? '#B8860B' : '#1A1508', color: m.mine ? '#000' : '#fff', padding: '10px 14px', borderRadius: m.mine ? '18px 18px 0 18px' : '18px 18px 18px 0', maxWidth: '72%', border: m.mine ? 'none' : '1px solid #2a2010' }}>
                   <div style={{ fontSize: '13px' }}>{m.text}</div>
-                  <div style={{ fontSize: '9px', marginTop: '4px', opacity: 0.7, textAlign: 'right', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '3px' }}>
-                    <IC size={9} color={m.mine ? '#00000088' : '#ffffff44'}><Clock /></IC> {m.time}
-                  </div>
+                  <div style={{ fontSize: '9px', marginTop: '4px', opacity: 0.7, textAlign: 'right' }}>{m.time}</div>
                 </div>
               </div>
             ))}
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <input value={chatMsg} onChange={(e) => setChatMsg(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendChat()} placeholder="መልዕክት ይጻፉ..."
+            <input value={chatMsg} onChange={(e) => setChatMsg(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendChat()} placeholder={t('msgWritePlaceholder')}
               style={{ flex: 1, background: '#1A1508', border: '1px solid #2a2010', color: '#fff', padding: '11px 16px', borderRadius: '24px', outline: 'none', fontSize: '13px', fontFamily: 'inherit' }} />
             <button onClick={sendChat} style={{ background: '#B8860B', border: 'none', borderRadius: '50%', width: '42px', height: '42px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <IC size={18} color="#000"><Send /></IC>
@@ -1325,11 +1229,9 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
     }
     return (
       <div style={{ paddingBottom: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ color: '#B8860B', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <IC size={20} color="#B8860B"><MessageCircle /></IC> ውይይቶች
-          </h2>
-        </div>
+        <h2 style={{ color: '#B8860B', margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <IC size={20} color="#B8860B"><MessageCircle /></IC> {t('conversations')}
+        </h2>
         {CHATS_DATA.map(c => (
           <div key={c.id} onClick={() => setActiveChat(c.id)} style={{ display: 'flex', gap: '12px', padding: '14px', backgroundColor: '#1A1508', borderRadius: '14px', marginBottom: '10px', cursor: 'pointer', border: '1px solid #2a2010' }}>
             <div style={{ position: 'relative' }}>
@@ -1361,7 +1263,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
             <div style={{ position: 'absolute', top: '5px', right: '5px', background: '#FF0000', width: '7px', height: '7px', borderRadius: '50%' }}></div>
           </button>
           <button onClick={() => triggerToast('ፕሮፋይሌን ያስተካክሉ...')} style={{ background: '#B8860B', border: 'none', borderRadius: '12px', padding: '8px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', color: '#000', fontWeight: '700', fontSize: '12px' }}>
-            <IC size={15} color="#000"><UserCog /></IC> ፕሮፋይል
+            <IC size={15} color="#000"><UserCog /></IC> {t('profile')}
           </button>
         </div>
         <div style={{ textAlign: 'center', paddingTop: '8px' }}>
@@ -1369,7 +1271,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
             <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'linear-gradient(135deg,#1A1508,#B8860B)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '3px solid #B8860B' }}>
               <span style={{ fontSize: '32px', fontWeight: '900', color: '#fff' }}>{userInitials}</span>
             </div>
-            <button onClick={() => triggerToast('ፎቶ ይቀይሩ')} style={{ position: 'absolute', bottom: '2px', right: '2px', background: '#B8860B', padding: '7px', borderRadius: '50%', border: '2px solid #0D0A06', cursor: 'pointer', display: 'flex' }}>
+            <button onClick={() => triggerToast(t('changePhoto'))} style={{ position: 'absolute', bottom: '2px', right: '2px', background: '#B8860B', padding: '7px', borderRadius: '50%', border: '2px solid #0D0A06', cursor: 'pointer', display: 'flex' }}>
               <IC size={13} color="#000"><Camera /></IC>
             </button>
           </div>
@@ -1380,23 +1282,23 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
           <p style={{ color: '#666', margin: '0 0 10px', fontSize: '13px' }}>"ጌታ እረኛዬ ነው" — መዝ. ፳፫:፩</p>
           {!isVerified && (
             <button onClick={() => setShowVerifyModal(true)} style={{ background: '#1A1508', border: '1px solid #B8860B55', borderRadius: '20px', padding: '6px 16px', color: '#B8860B', cursor: 'pointer', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
-              <BadgeCheck size={13} color="#B8860B" /> ማረጋገጫ ምልክት ጠይቅ
+              <BadgeCheck size={13} color="#B8860B" /> {t('requestVerify')}
             </button>
           )}
           {isVerified && (
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: '#B8860B22', border: '1px solid #B8860B55', borderRadius: '20px', padding: '4px 12px', fontSize: '11px', color: '#B8860B', marginBottom: '8px' }}>
-              <BadgeCheck size={13} color="#B8860B" /> የተረጋገጠ ሂሳብ
+              <BadgeCheck size={13} color="#B8860B" /> {t('verified')}
             </div>
           )}
         </div>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'center', gap: '0', marginBottom: '22px', background: '#1A1508', borderRadius: '16px', border: '1px solid #2a2010', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '22px', background: '#1A1508', borderRadius: '16px', border: '1px solid #2a2010', overflow: 'hidden' }}>
         {[
-          { v: posts.length, l: 'ፖስቶች', Icon: PenLine },
-          { v: '1.2k', l: 'ተከታዮች', Icon: Users },
-          { v: '540', l: 'ተከታይ', Icon: UserCheck },
-          { v: savedVerses.length, l: 'ጥቅሶች', Icon: BookMarked },
-          { v: '15', l: 'ዝማሬዎች', Icon: ListMusic },
+          { v: posts.length, l: t('posts'), Icon: PenLine },
+          { v: '1.2k', l: t('followers'), Icon: Users },
+          { v: '540', l: t('following'), Icon: UserCheck },
+          { v: savedVerses.length, l: t('verses'), Icon: BookMarked },
+          { v: '15', l: t('songs'), Icon: ListMusic },
         ].map((s, i, arr) => (
           <React.Fragment key={i}>
             <div style={{ flex: 1, padding: '14px 6px', textAlign: 'center', cursor: 'pointer' }} onClick={() => triggerToast(`${s.l}...`)}>
@@ -1408,22 +1310,22 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
           </React.Fragment>
         ))}
       </div>
-      <button onClick={onLogout} style={{ width: '100%', padding: '14px', background: 'linear-gradient(90deg,#3a0000,#660000)', color: '#ff8888', border: 'none', borderRadius: '14px', marginTop: '4px', fontWeight: '700', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-        <IC size={18} color="#ff8888"><LogOut /></IC> ውጣ
+      <button onClick={onLogout} style={{ width: '100%', padding: '14px', background: 'linear-gradient(90deg,#3a0000,#660000)', color: '#ff8888', border: 'none', borderRadius: '14px', fontWeight: '700', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+        <IC size={18} color="#ff8888"><LogOut /></IC> {t('signOut')}
       </button>
       {showVerifyModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
           <div style={{ background: '#1A1508', borderRadius: '24px', padding: '28px 24px', border: '1px solid #B8860B55', width: '100%', maxWidth: '360px' }}>
             <div style={{ textAlign: 'center', marginBottom: '20px' }}>
               <BadgeCheck size={44} color="#B8860B" strokeWidth={1.5} />
-              <h3 style={{ margin: '10px 0 4px', color: '#B8860B', fontSize: '18px' }}>ማረጋገጫ ምልክት</h3>
-              <p style={{ color: '#888', fontSize: '12px', margin: 0 }}>ኮድ ካለዎት ይጠቀሙ</p>
+              <h3 style={{ margin: '10px 0 4px', color: '#B8860B', fontSize: '18px' }}>{t('verifyTitle')}</h3>
+              <p style={{ color: '#888', fontSize: '12px', margin: 0 }}>{t('verifySubtitle')}</p>
             </div>
-            <input value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder="ኮድ ያስገቡ..."
+            <input value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder={t('verifyCode')}
               style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px 16px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '12px', boxSizing: 'border-box', letterSpacing: '2px', textAlign: 'center' }} />
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => { setShowVerifyModal(false); setVerifyCode(''); }} style={{ flex: 1, padding: '12px', background: '#0D0A06', border: '1px solid #2a2010', borderRadius: '12px', color: '#888', cursor: 'pointer', fontWeight: '600' }}>ሰርዝ</button>
-              <button onClick={handleVerify} style={{ flex: 2, padding: '12px', background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '12px', color: '#000', cursor: 'pointer', fontWeight: '700' }}>አረጋግጥ</button>
+              <button onClick={() => { setShowVerifyModal(false); setVerifyCode(''); }} style={{ flex: 1, padding: '12px', background: '#0D0A06', border: '1px solid #2a2010', borderRadius: '12px', color: '#888', cursor: 'pointer', fontWeight: '600' }}>{t('cancel')}</button>
+              <button onClick={handleVerify} style={{ flex: 2, padding: '12px', background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '12px', color: '#000', cursor: 'pointer', fontWeight: '700' }}>{t('confirm')}</button>
             </div>
           </div>
         </div>
@@ -1434,13 +1336,13 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
   const renderSettings = () => (
     <div style={{ paddingBottom: '20px' }}>
       <h2 style={{ color: '#B8860B', marginBottom: '16px', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <IC size={20} color="#B8860B"><SlidersHorizontal /></IC> ቅንብሮች
+        <IC size={20} color="#B8860B"><SlidersHorizontal /></IC> {t('settings')}
       </h2>
       {[
-        { Icon: BellRing, label: 'ማሳወቂያዎች' },
-        { Icon: Moon, label: 'ጨለማ ሁነታ' },
-        { Icon: Lock, label: 'ግላዊነት' },
-        { Icon: Globe, label: 'ቋንቋ' },
+        { Icon: BellRing, label: t('notifications') },
+        { Icon: Moon, label: t('darkMode') },
+        { Icon: Lock, label: t('privacy') },
+        { Icon: Globe, label: t('language') },
       ].map((item, i) => (
         <div key={i} onClick={() => triggerToast(`${item.label}...`)} style={{ background: '#1A1508', padding: '15px 16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', border: '1px solid #2a2010', marginBottom: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -1454,14 +1356,29 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
       ))}
       <div style={{ background: 'linear-gradient(135deg,#1A1508,#2a1e08)', borderRadius: '16px', padding: '18px', border: '1px solid #B8860B44', marginTop: '8px' }}>
         <h3 style={{ color: '#B8860B', margin: '0 0 14px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <MessageSquare size={18} color="#B8860B" strokeWidth={1.8} /> የዕርዳታ ማዕከል
+          <MessageSquare size={18} color="#B8860B" strokeWidth={1.8} /> {t('helpCenter')}
         </h3>
-        <textarea placeholder="ጥያቄዎን ወይም ቅሬታዎን ይጻፉ..."
+        <p style={{ color: '#888', fontSize: '12px', margin: '0 0 14px', lineHeight: '1.6' }}>ቅሬታ፣ ጥያቄ ወይም አስተያየት ካለዎት ይጻፉልን።</p>
+        <textarea placeholder={t('helpPlaceholder')}
           style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', minHeight: '90px', resize: 'none', marginBottom: '10px', boxSizing: 'border-box', fontSize: '13px', fontFamily: 'inherit' }} />
-        <button onClick={() => triggerToast('መልዕክትዎ ተልኳል!')}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+          {[t('techIssue'), t('account'), t('other')].map(tag => (
+            <button key={tag} style={{ background: '#B8860B22', border: '1px solid #B8860B44', borderRadius: '20px', padding: '4px 12px', color: '#B8860B', cursor: 'pointer', fontSize: '11px' }}>{tag}</button>
+          ))}
+        </div>
+        <button onClick={() => triggerToast(t('msgSent'))}
           style={{ width: '100%', background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '12px', padding: '12px', color: '#000', fontWeight: '700', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-          <Send size={14} color="#000" strokeWidth={2} /> ላክ
+          <Send size={14} color="#000" strokeWidth={2} /> {t('sendMsg')}
         </button>
+      </div>
+      <div style={{ background: '#1A1508', padding: '15px 16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', border: '1px solid #2a2010', marginTop: '8px' }} onClick={() => triggerToast('ስለ ሄኖን...')}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#B8860B22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <img src={LOGO_SRC} alt="ሄኖን" style={{ width: '26px', height: '26px', objectFit: 'contain', borderRadius: '6px' }} />
+          </div>
+          <span style={{ fontSize: '14px' }}>{t('about')}</span>
+        </div>
+        <IC size={16} color="#444"><ChevronRight /></IC>
       </div>
     </div>
   );
@@ -1469,19 +1386,22 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
   const renderAddAccount = () => (
     <div style={{ paddingBottom: '20px' }}>
       <button onClick={() => setActiveTab('home')} style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}>
-        <IC size={18} color="#B8860B"><ArrowLeft /></IC> ተመለስ
+        <IC size={18} color="#B8860B"><ArrowLeft /></IC> {t('back')}
       </button>
       <h2 style={{ color: '#B8860B', marginBottom: '20px', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <IC size={20} color="#B8860B"><UserPlus /></IC> ሌላ ሂሳብ ጨምር
+        <IC size={20} color="#B8860B"><UserPlus /></IC> {t('addAccountTitle')}
       </h2>
       <div style={{ background: '#1A1508', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2a2010', marginBottom: '20px' }}>
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid #2a2010', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('existingAccounts')}</div>
         {accounts.map((acc, i) => (
           <div key={i} onClick={() => onSwitchAccount(acc)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: i < accounts.length - 1 ? '1px solid #2a2010' : 'none', cursor: 'pointer', background: acc.email === user.email ? 'rgba(184,134,11,0.1)' : 'transparent' }}>
             <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'linear-gradient(135deg,#B8860B,#FFD700)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: '16px', fontWeight: '900', color: '#000' }}>{acc.name.slice(0,2).toUpperCase()}</span>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: '700', fontSize: '14px' }}>{acc.name}</div>
+              <div style={{ fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                {acc.name} {acc.email === user.email && <span style={{ fontSize: '10px', background: '#B8860B22', color: '#B8860B', border: '1px solid #B8860B44', borderRadius: '8px', padding: '1px 6px' }}>{t('currentAccount')}</span>}
+              </div>
               <div style={{ fontSize: '11px', color: '#888' }}>{acc.email}</div>
             </div>
             {acc.email === user.email && <Check size={16} color="#B8860B" />}
@@ -1490,7 +1410,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <button onClick={onAddAccount} style={{ background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '14px', padding: '15px', color: '#000', fontWeight: '700', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-          <UserPlus size={18} color="#000" /> አዲስ ሂሳብ ፍጠር
+          <UserPlus size={18} color="#000" /> {t('newAccountCreate')}
         </button>
       </div>
     </div>
@@ -1498,9 +1418,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
 
   return (
     <div style={{ backgroundColor: '#0D0A06', minHeight: '100vh', maxWidth: '430px', margin: '0 auto', color: '#F0E6C8', fontFamily: '"Segoe UI", system-ui, sans-serif', position: 'relative', overflowX: 'hidden' }}>
-
       {activeTab === 'video' && VIDEOS[currentVideoIndex] && !VIDEOS[currentVideoIndex].isLong && renderVideoFeed()}
-
       {(activeTab !== 'video' || VIDEOS[currentVideoIndex].isLong) && (
         <>
           <header style={{ backgroundColor: 'rgba(13,10,6,0.97)', backdropFilter: 'blur(20px)', padding: '14px 16px', borderBottom: '1px solid #2a2010', position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1552,7 +1470,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
                         {user.name} {isVerified && <BadgeCheck size={14} color="#B8860B" />}
                       </div>
                       <div style={{ fontSize: '11px', color: '#B8860B', cursor: 'pointer' }} onClick={() => { setActiveTab('profile'); setMenuOpen(false); }}>
-                        ፕሮፋይሌን ይመልከቱ
+                        {t('viewProfile')}
                       </div>
                     </div>
                   </div>
@@ -1572,20 +1490,20 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
                     <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#1A1508', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <IC size={18} color="#4facfe"><UserPlus /></IC>
                     </div>
-                    <span style={{ fontSize: '14px', color: '#F0E6C8' }}>ሌላ ሂሳብ ጨምር</span>
+                    <span style={{ fontSize: '14px', color: '#F0E6C8' }}>{t('addAccount')}</span>
                   </div>
                   <div onClick={() => { setActiveTab('settings'); setMenuOpen(false); }} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '13px 12px', borderRadius: '12px', cursor: 'pointer', marginBottom: '4px', border: '1px solid transparent' }}>
                     <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#1A1508', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <IC size={18} color="#666"><SlidersHorizontal /></IC>
                     </div>
-                    <span style={{ fontSize: '14px', color: '#F0E6C8' }}>ቅንብሮች</span>
+                    <span style={{ fontSize: '14px', color: '#F0E6C8' }}>{t('settings')}</span>
                   </div>
                   <div style={{ height: '1px', background: '#2a2010', margin: '12px 0' }}></div>
                   <div onClick={onLogout} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '13px 12px', borderRadius: '12px', cursor: 'pointer' }}>
                     <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#3a000022', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <IC size={18} color="#ff6666"><LogOut /></IC>
                     </div>
-                    <span style={{ fontSize: '14px', color: '#ff6666' }}>ውጣ</span>
+                    <span style={{ fontSize: '14px', color: '#ff6666' }}>{t('signOut')}</span>
                   </div>
                 </div>
               </div>
@@ -1644,11 +1562,11 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
                 <div key={t.id} onClick={() => { setActiveTab(t.id); setActiveChat(null); }}
                   style={{ textAlign: 'center', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', minWidth: '48px', transform: isActive ? 'translateY(-3px)' : 'none', transition: 'transform 0.25s' }}>
                   {isUpload ? (
-                    <div style={{ width: '40px', height: '40px', borderRadius: '14px', background: isActive ? '#B8860B' : 'linear-gradient(135deg,#2a2010,#1A1508)', border: `1px solid ${isActive ? '#B8860B' : '#2a2010'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.25s' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '14px', background: isActive ? '#B8860B' : 'linear-gradient(135deg,#2a2010,#1A1508)', border: `1px solid ${isActive ? '#B8860B' : '#2a2010'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <IC size={20} color={isActive ? '#000' : '#666'}><t.Icon /></IC>
                     </div>
                   ) : (
-                    <div style={{ width: '36px', height: '36px', borderRadius: '12px', background: isActive ? 'rgba(184,134,11,0.15)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: '0.25s' }}>
+                    <div style={{ width: '36px', height: '36px', borderRadius: '12px', background: isActive ? 'rgba(184,134,11,0.15)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <IC size={22} color={isActive ? '#B8860B' : '#444'}><t.Icon /></IC>
                     </div>
                   )}
@@ -1659,7 +1577,6 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
           </nav>
         </>
       )}
-
       <style>{`
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
         body { margin: 0; overflow-x: hidden; background: #0D0A06; }
@@ -1672,10 +1589,16 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount }) =>
 
 // ===================== ROOT =====================
 const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
   const [user, setUser] = useState(null);
   const [accounts, setAccounts] = useState([]);
+  const [appLang, setAppLang] = useState('am');
 
-  // ✅ handleAuthSuccess ከ useEffect በፊት ይፈጠራል
+  useEffect(() => {
+    const timer = setTimeout(() => setShowSplash(false), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleAuthSuccess = useCallback((userData) => {
     setUser(userData);
     setAccounts(prev => {
@@ -1685,49 +1608,31 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    // Helper — user object → display name ያወጣል
-    const extractUser = (supabaseUser) => {
-      const meta = supabaseUser.user_metadata ?? {};
+    const extractUser = (u) => {
+      const meta = u.user_metadata ?? {};
       return {
-        name:
-          meta.full_name ||   // Google OAuth
-          meta.name      ||   // አንዳንድ providers
-          meta.display_name || 
-          supabaseUser.email.split('@')[0],
-        email:  supabaseUser.email,
+        name: meta.full_name || meta.name || meta.display_name || u.email.split('@')[0],
+        email: u.email,
         avatar: meta.avatar_url || null,
       };
     };
 
-    // 1️⃣ Page load ሲሆን — Google redirect በኋላ ይህ ነው የሚሰራው
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        handleAuthSuccess(extractUser(session.user));
-      }
+      if (session?.user) handleAuthSuccess(extractUser(session.user));
     });
 
-    // 2️⃣ Future events (email login, logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        console.log('🔥 Auth event:', event);
-        console.log('🔥 Metadata:', session?.user?.user_metadata);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) handleAuthSuccess(extractUser(session.user));
+      if (event === 'SIGNED_OUT') setUser(null);
+    });
 
-        if (event === 'SIGNED_IN' && session?.user) {
-          handleAuthSuccess(extractUser(session.user));
-        }
-        if (event === 'SIGNED_OUT') {
-          setUser(null);
-        }
-      }
-    );
-
-    // ✅ Cleanup — memory leak ይከላከላል
     return () => subscription.unsubscribe();
   }, [handleAuthSuccess]);
 
   const handleSwitchAccount = (acc) => setUser(acc);
-  const handleAddAccount   = ()    => setUser(null);
+  const handleAddAccount = () => setUser(null);
 
+  if (showSplash) return <SplashScreen />;
   if (!user) return <AuthScreen onAuthSuccess={handleAuthSuccess} />;
 
   return (
@@ -1737,9 +1642,11 @@ const App = () => {
       accounts={accounts}
       onSwitchAccount={handleSwitchAccount}
       onAddAccount={handleAddAccount}
+      appLang={appLang}
     />
   );
 };
+
 const ArrowRight = ({ size = 18, color = '#000', strokeWidth = 2 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
     <line x1="5" y1="12" x2="19" y2="12" />
@@ -1753,4 +1660,35 @@ const ChevronLeft = ({ size = 20, color = '#B8860B', strokeWidth = 1.8 }) => (
   </svg>
 );
 
+const ChevronDown = ({ size = 14, color = '#B8860B', strokeWidth = 1.8 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+const Crown = ({ size = 18, color = 'currentColor', strokeWidth = 1.8 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 20h20M4 20L2 8l6 4 4-6 4 6 6-4-2 12H4z"/>
+  </svg>
+);
+
+const Copy = ({ size = 18, color = 'currentColor', strokeWidth = 1.8 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+  </svg>
+);
+
+const PenLine = ({ size = 18, color = 'currentColor', strokeWidth = 1.8 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 20h9"></path>
+    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+  </svg>
+);
+
 export default App;
+ENDOFFILE
+echo "Done! Lines: $(wc -l < /home/claude/App.js)"
+Output
+
+Command argument is 120_587 bytes, exceeding the 100_000-byte per-argument limit. For large content, pipe via stdin or use a file-write API instead of embedding the content inline in the command. Argument preview: "cat > /home/claude/App.js << 'ENDOFFILE'\nimport { supabase } from './supabase';\nimport React, { useState, useRef, useEffect, useCallback } from 'react';\nimport {\n  Heart, BookOpen, Calendar, ChevronRi"
