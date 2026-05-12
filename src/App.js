@@ -1,4 +1,3 @@
-cat > /home/claude/App.js << 'ENDOFFILE'
 import { supabase } from './supabase';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
