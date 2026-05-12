@@ -599,6 +599,9 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
     { user: 'ማርታ', msg: 'አሜን! ለሁላችንም በረከቱን ያድለን።' },
   ]);
 
+  const [comments, setComments] = useState([]); // የመጡ ኮሜንቶችን መያዣ
+  const [commentText, setCommentText] = useState(""); // አዲስ የሚጻፍ ኮሜንት መያዣ
+
   useEffect(() => {
     const loadPosts = async () => {
       const { data } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
@@ -606,6 +609,40 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
     };
     loadPosts();
   }, []);
+
+  const fetchComments = async (postId) => {
+  const { data, error } = await supabase
+    .from('comments')
+    .select('*')
+    .eq('video_id', postId) // ለዚህ ቪዲዮ ብቻ የሆኑትን አምጣ
+    .order('created_at', { ascending: false }); // አዲሱ ላይ እንዲሆን
+
+  if (error) console.error("Error fetching comments:", error);
+  else setComments(data);
+};
+
+const handlePostComment = async (postId) => {
+  if (!commentText.trim()) return; // ባዶ ከሆነ ምንም አያደርግም
+
+  const { error } = await supabase
+    .from('comments')
+    .insert([
+      {
+        content: commentText,
+        video_id: postId,
+        user_id: user.id, // Login ያደረገው ሰው ID
+        user_name: user.user_metadata?.full_name || "User",
+        user_avatar: user.user_metadata?.avatar_url
+      }
+    ]);
+
+  if (error) {
+    alert("ኮሜንት መላክ አልተቻለም!");
+  } else {
+    setCommentText(""); // መጻፊያውን ባዶ ያደርጋል
+    fetchComments(postId); // ዝርዝሩን ወዲያው ያድሳል
+  }
+};
 
   const triggerToast = (msg) => {
     setNotification({ show: true, message: msg });
@@ -692,6 +729,78 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const PostCard = ({ p }) => {
     const isCommentOpen = openCommentPostId === p.id;
     const commentText = commentInputs[p.id] || '';
+    const [comments, setComments] = useState([]);
+
+  // ኮሜንቶችን ከ Supabase ለማምጣት
+  const fetchComments = async (postId) => {
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*')
+        .eq('video_id', postId)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      setComments(data || []);
+    } catch (err) {
+      console.error("Error fetching comments:", err.message);
+    }
+  };
+
+  // አዲስ ኮሜንት ለመላክ
+  const handlePostComment = async (postId) => {
+    // እዚህ ጋር commentInputs[p.id] መጠቀምህን አረጋግጥ (በመስመር 731 መሰረት)
+    const currentText = commentInputs[postId]; 
+    if (!currentText || !currentText.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .insert([{ 
+          content: currentText, 
+          video_id: postId, 
+          user_id: user?.id,
+          user_name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User',
+          user_avatar: user?.user_metadata?.avatar_url
+        }]);
+
+      if (error) throw error;
+
+      // ከላከ በኋላ ጽሁፉን ማጽዳት
+      setCommentInputs(prev => ({ ...prev, [postId]: "" }));
+      // ዝርዝሩን ማደስ
+      fetchComments(postId);
+    } catch (err) {
+      alert("ኮሜንት መላክ አልተቻለም: " + err.message);
+    }
+  };
+
+  // ገጹ ሲከፈት ወይም ቪዲዮው ሲቀየር ኮሜንት እንዲያመጣ
+  useEffect(() => {
+    if (p.id) fetchComments(p.id);
+  }, [p.id]);
+
+ // አዲስ ኮሜንት ሲጻፍ ገጹ ሳይታደስ ወዲያው እንዲመጣ (Real-time)
+  useEffect(() => {
+    const channel = supabase
+      .channel(`comments-${p.id}`)
+      .on('postgres_changes', 
+        { event: 'INSERT', schema: 'public', table: 'comments', filter: `video_id=eq.${p.id}` }, 
+        (payload) => {
+          setComments((prev) => {
+            // ኮሜንቱ አስቀድሞ በዝርዝሩ ውስጥ ከሌለ ብቻ ጨምረው
+            if (prev.find(c => c.id === payload.new.id)) return prev;
+            return [payload.new, ...prev];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [p.id]);
+  
     return (
       <div style={{ backgroundColor: '#1A1508', borderRadius: '20px', marginBottom: '14px', border: '1px solid #2a2010', overflow: 'hidden' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px 10px' }}>
@@ -740,36 +849,56 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
             </button>
           ))}
         </div>
-        {isCommentOpen && (
-          <div style={{ borderTop: '1px solid #2a2010', padding: '12px 14px' }}>
-            {p.comments.length === 0 && <p style={{ textAlign: 'center', color: '#444', fontSize: '12px', marginBottom: '12px' }}>{t('noComments')}</p>}
-            {p.comments.map((c) => (
-              <div key={c.id} style={{ display: 'flex', gap: '8px', marginBottom: '10px', alignItems: 'flex-start' }}>
-                <Avatar initials={c.initials} color={c.color} size={30} fontSize={11} />
-                <div style={{ flex: 1, background: '#0D0A06', borderRadius: '12px', padding: '8px 12px', border: '1px solid #2a2010' }}>
-                  <span style={{ fontSize: '12px', fontWeight: '700', color: '#B8860B' }}>{c.author} </span>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#ddd' }}>{c.text}</p>
-                </div>
-              </div>
-            ))}
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <Avatar initials={userInitials} color="#B8860B" size={32} fontSize={11} />
-              <div style={{ flex: 1, display: 'flex', gap: '6px', background: '#0D0A06', border: '1px solid #2a2010', borderRadius: '20px', padding: '6px 10px 6px 14px', alignItems: 'center' }}>
-                <input value={commentText} onChange={e => setCommentInputs(prev => ({ ...prev, [p.id]: e.target.value }))}
-                  onKeyDown={e => e.key === 'Enter' && handleAddComment(p.id)}
-                  placeholder={t('commentPlaceholder')}
-                  style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#F0E6C8', fontSize: '13px', fontFamily: 'inherit' }} />
-                <button onClick={() => handleAddComment(p.id)}
-                  style={{ background: commentText ? '#B8860B' : '#2a2010', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                  <Send size={13} color={commentText ? '#000' : '#555'} strokeWidth={2} />
-                </button>
-              </div>
-            </div>
+       {isCommentOpen && (
+  <div style={{ borderTop: '1px solid #2a2010', padding: '12px 14px' }}>
+    {/* የኮሜንት ብዛት ማሳያ */}
+    <p style={{ textAlign: 'center', color: '#444', fontSize: '12px', marginBottom: '10px' }}>
+      {comments.length === 0 ? "የመጀመሪያውን ኮሜንት ይጻፉ" : `${comments.length} ኮሜንቶች`}
+    </p>
+
+    {/* ከ Supabase የመጡ ኮሜንቶችን የማሳያ ክፍል */}
+    <div style={{ maxHeight: '250px', overflowY: 'auto', marginBottom: '10px' }}>
+      {comments.map((c) => (
+        <div key={c.id} style={{ display: 'flex', gap: '8px', marginBottom: '12px', alignItems: 'flex-start' }}>
+          <Avatar 
+            initials={c.user_name?.substring(0, 2).toUpperCase()} 
+            color="#88860B" 
+            size={30} 
+            fontSize={11} 
+          />
+          <div style={{ flex: 1, background: '#0D0A06', borderRadius: '12px', padding: '8px 12px' }}>
+            <span style={{ fontSize: '12px', fontWeight: '700', color: '#88860B', display: 'block' }}>
+              {c.user_name}
+            </span>
+            <p style={{ margin: 0, fontSize: '13px', color: '#ddd', lineHeight: '1.4' }}>
+              {c.content}
+            </p>
           </div>
-        )}
+        </div>
+      ))}
+    </div>
+
+    {/* አዲስ ኮሜንት መጻፊያ ሳጥን */}
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+      <Avatar initials={userInitials} color="#88860B" size={32} fontSize={11} />
+      <div style={{ flex: 1, display: 'flex', gap: '6px', background: '#0D0A06', borderRadius: '20px', padding: '4px 12px', border: '1px solid #2a2010' }}>
+        <input
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handlePostComment(p.id)}
+          placeholder="ኮሜንት ይጻፉ..."
+          style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: '14px', padding: '8px 0' }}
+        />
+        <button
+          onClick={() => handlePostComment(p.id)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+        >
+          <Send size={18} color={commentText ? "#88860B" : "#555"} />
+        </button>
       </div>
-    );
-  };
+    </div>
+  </div>
+)}
 
   const renderHome = () => (
     <div style={{ paddingBottom: '20px' }}>
