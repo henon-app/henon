@@ -1,5 +1,3 @@
-bash
-
 cat > /home/claude/App.js << 'ENDOFFILE'
 import { supabase } from './supabase';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
@@ -1687,8 +1685,3 @@ const PenLine = ({ size = 18, color = 'currentColor', strokeWidth = 1.8 }) => (
 );
 
 export default App;
-ENDOFFILE
-echo "Done! Lines: $(wc -l < /home/claude/App.js)"
-Output
-
-Command argument is 120_587 bytes, exceeding the 100_000-byte per-argument limit. For large content, pipe via stdin or use a file-write API instead of embedding the content inline in the command. Argument preview: "cat > /home/claude/App.js << 'ENDOFFILE'\nimport { supabase } from './supabase';\nimport React, { useState, useRef, useEffect, useCallback } from 'react';\nimport {\n  Heart, BookOpen, Calendar, ChevronRi"
