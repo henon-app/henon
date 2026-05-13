@@ -569,13 +569,21 @@ const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentP
   const handlePostComment = async () => {
     if (!commentText.trim()) return;
     setCommentLoading(true);
-    const { error } = await supabase.from('comments').insert([{
-      content: commentText.trim(),
-      post_id: p.id,
-      user_id: user?.id || null,
-      user_name: user?.name || user?.email?.split('@')[0] || 'User',
-      user_avatar: user?.avatar || null,
-    }]);
+    const { data: newComment, error } = await supabase
+  .from('comments')
+  .insert([{
+    content: commentText.trim(),
+    post_id: p.id,
+    user_id: user?.id || null,
+    user_name: user?.name || user?.email?.split('@')[0] || 'User',
+    user_avatar: user?.avatar || null,
+  }])
+  .select()
+  .single();
+
+if (!error && newComment) {
+  setComments(prev => [...prev, newComment]);
+}
     setCommentLoading(false);
     if (error) {
       triggerToast('ኮሜንት አልተላከም: ' + error.message);
