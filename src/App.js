@@ -1621,14 +1621,21 @@ const handleVideoPost = async (file, title) => {
   );
 
   // ===================== MAIN RENDER =====================
+ 
+// ===================== MAIN RENDER =====================
   return (
     <div style={{ backgroundColor: '#0D0A06', minHeight: '100vh', maxWidth: '430px', margin: '0 auto', color: '#F0E6C8', fontFamily: '"Segoe UI", system-ui, sans-serif', position: 'relative', overflowX: 'hidden' }}>
+      
+      {/* 1. የቪዲዮ ገጽ ሲመረጥ (Reels Style) */}
       {activeTab === 'video' && videos?.[currentVideoIndex] && !videos?.[currentVideoIndex]?.isLong && (
-  <> 
-    {/* ... የቪዲዮው ይዘት ... */}
-  </>
-)}
-{(activeTab !== 'video' || videos?.[currentVideoIndex]?.isLong) && (
+        <> 
+          {/* እዚህ ጋር renderVideoFeed() መጥራቱ በጣም አስፈላጊ ነው */}
+          {renderVideoFeed()} 
+        </>
+      )}
+
+      {/* 2. ሌሎች ገጾች ሲመረጡ የሚታይ Header */}
+      {(activeTab !== 'video' || videos?.[currentVideoIndex]?.isLong) && (
         <>
           {/* Header */}
           <header style={{ backgroundColor: 'rgba(13,10,6,0.97)', backdropFilter: 'blur(20px)', padding: '14px 16px', borderBottom: '1px solid #2a2010', position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1650,7 +1657,7 @@ const handleVideoPost = async (file, title) => {
                 { Icon: SlidersHorizontal, action: () => setActiveTab('settings') },
               ].map(({ Icon: Ic, action, badge }, i) => (
                 <button key={i} onClick={action} style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', position: 'relative', padding: '7px', borderRadius: '10px', display: 'flex' }}>
-                  <IC size={20} color="#B8860B"><Ic /></IC>
+                  <Ic size={20} color="#B8860B" />
                   {badge && <div style={{ position: 'absolute', top: '5px', right: '5px', background: '#FF0000', width: '7px', height: '7px', borderRadius: '50%' }}></div>}
                 </button>
               ))}
