@@ -1034,7 +1034,7 @@ const handleVideoPost = async (file, title) => {
   // ===================== RENDER VIDEO FEED =====================
   const renderVideoFeed = () => {
     const video = videos[currentVideoIndex];
-    if (!video.isLong) {
+    if (!video) {
       return (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 500 }}>
           <button onClick={() => setActiveTab('home')} style={{ position: 'absolute', top: '20px', left: '16px', zIndex: 10, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', cursor: 'pointer', borderRadius: '50%', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
