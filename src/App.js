@@ -680,8 +680,19 @@ const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentP
         </div>
       )}
 
+      {/* Video player — video_url ካለ */}
+      {p.video_url && (
+        <div style={{ width: '100%', background: '#000', borderRadius: '0' }}>
+          <video
+            src={p.video_url}
+            controls
+            style={{ width: '100%', maxHeight: '300px', display: 'block' }}
+          />
+        </div>
+      )}
+
       {/* Video/Photo placeholder (no URL) */}
-      {!p.photo_url && (p.type === 'photo' || p.type === 'video') && (
+      {!p.photo_url && !p.video_url && (p.type === 'photo' || p.type === 'video') && (
         <div style={{ width: '100%', aspectRatio: '16/9', background: 'linear-gradient(135deg,#0D0A06,#1f1608)', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', cursor: 'pointer' }}
           onClick={() => triggerToast(p.type === 'video' ? 'ቪዲዮ እየተጫወተ...' : 'ፎቶ')}>
           <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(184,134,11,0.15)', border: '1px solid rgba(184,134,11,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -785,9 +796,14 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const [openCommentPostId, setOpenCommentPostId] = useState(null);
 
   // ---- Photo upload state ----
-  const [selectedPhoto, setSelectedPhoto] = useState(null); // { url, file, name }
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
+
+  // ---- Video upload state ----
+  const [selectedVideo, setSelectedVideo] = useState(null);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const videoInputRef = useRef(null);
 
   const ADMIN_CODE = 'HENON2024';
 
@@ -831,6 +847,18 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
     setSelectedPhoto({ url: previewUrl, file, name: file.name });
   };
 
+  const uploadVideoToStorage = async (file) => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = Date.now() + "-" + Math.random().toString(36).slice(2) + "." + fileExt;
+    const filePath = "posts/" + fileName;
+    const { error } = await supabase.storage
+      .from("post-videos")
+      .upload(filePath, file, { cacheControl: "3600", upsert: false });
+    if (error) throw error;
+    const { data } = supabase.storage.from("post-videos").getPublicUrl(filePath);
+    return data.publicUrl;
+  };
+
   const uploadPhotoToStorage = async (file) => {
     // ✅ Supabase Storage — bucket name: "post-photos"
     // Supabase dashboard ላይ "post-photos" bucket ፍጠር (public)
@@ -850,12 +878,21 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   };
   // ========================================================================
 
+  const handleVideoPick = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const previewUrl = URL.createObjectURL(file);
+    setSelectedVideo({ url: previewUrl, file, name: file.name });
+  };
+
   const handlePost = async () => {
-    if (!newPost.trim() && !selectedPhoto) return triggerToast('ጽሑፍ ወይም ፎቶ ያስፈልጋል!');
+    if (!newPost.trim() && !selectedPhoto && !selectedVideo)
+      return triggerToast('ጽሑፍ፣ ፎቶ ወይም ቪዲዮ ያስፈልጋል!');
 
     let photoUrl = null;
+    let videoUrl = null;
 
-    // ፎቶ ካለ Supabase Storage ጋር ጫን
+    // ፎቶ upload
     if (selectedPhoto?.file) {
       setPhotoUploading(true);
       triggerToast(t('uploading'));
@@ -868,13 +905,29 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       setPhotoUploading(false);
     }
 
+    // ቪዲዮ upload
+    if (selectedVideo?.file) {
+      setVideoUploading(true);
+      triggerToast('ቪዲዮ እየተጫነ... ⏳');
+      try {
+        videoUrl = await uploadVideoToStorage(selectedVideo.file);
+      } catch (err) {
+        setVideoUploading(false);
+        return triggerToast('ቪዲዮ አልተጫነም: ' + err.message);
+      }
+      setVideoUploading(false);
+    }
+
+    const postType = videoUrl ? 'video' : photoUrl ? 'photo' : 'text';
+
     const { data, error } = await supabase.from('posts').insert([{
       text: newPost,
       author: user.name,
       initials: user.name.slice(0, 2).toUpperCase(),
       color: '#B8860B',
-      type: photoUrl ? 'photo' : 'text',
+      type: postType,
       photo_url: photoUrl,
+      video_url: videoUrl,
       user_email: user.email,
       likes: 0,
       prayers: 0,
@@ -886,7 +939,9 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       setPosts(prev => [{ ...data[0], time: 'አሁን', views: '1' }, ...prev]);
       setNewPost('');
       setSelectedPhoto(null);
+      setSelectedVideo(null);
       if (photoInputRef.current) photoInputRef.current.value = '';
+      if (videoInputRef.current) videoInputRef.current.value = '';
       triggerToast('መልዕክት ተጋርቷል! 🙏');
     }
   };
@@ -990,6 +1045,20 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           </div>
         )}
 
+        {/* Video preview */}
+        {selectedVideo && (
+          <div style={{ position: 'relative', marginBottom: '10px', borderRadius: '12px', overflow: 'hidden', background: '#000' }}>
+            <video src={selectedVideo.url} controls style={{ width: '100%', maxHeight: '200px', borderRadius: '12px', display: 'block' }} />
+            <button onClick={() => { setSelectedVideo(null); if (videoInputRef.current) videoInputRef.current.value = ''; }}
+              style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+              <X size={14} color="#fff" />
+            </button>
+            <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.6)', borderRadius: '8px', padding: '3px 8px', fontSize: '10px', color: '#B8860B' }}>
+              {videoUploading ? '⏳ ቪዲዮ እየተጫነ...' : '✅ ' + selectedVideo.name}
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #2a2010', paddingTop: '10px' }}>
           <div style={{ display: 'flex', gap: '4px' }}>
             {/* ✅ Camera button — Supabase Storage upload ያነሳሳል */}
@@ -1007,19 +1076,21 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
               onChange={handlePhotoPick}
               style={{ display: 'none' }}
             />
-            <button onClick={() => setActiveTab('upload')} style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex' }}>
+            <button onClick={() => videoInputRef.current && videoInputRef.current.click()} style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
               <IC size={20} color="#B8860B"><Clapperboard /></IC>
+              <span style={{ color: '#B8860B', fontSize: '11px' }}>ቪዲዮ</span>
             </button>
+            <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoPick} style={{ display: 'none' }} />
             <button onClick={() => setActiveTab('live')} style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', padding: '6px', borderRadius: '8px', display: 'flex' }}>
               <IC size={20} color="#B8860B"><Rss /></IC>
             </button>
           </div>
           <button
             onClick={handlePost}
-            disabled={photoUploading}
-            style={{ backgroundColor: photoUploading ? '#555' : '#B8860B', border: 'none', borderRadius: '20px', padding: '8px 20px', color: '#000', fontWeight: '700', cursor: photoUploading ? 'not-allowed' : 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+            disabled={photoUploading || videoUploading}
+            style={{ backgroundColor: (photoUploading || videoUploading) ? '#555' : '#B8860B', border: 'none', borderRadius: '20px', padding: '8px 20px', color: '#000', fontWeight: '700', cursor: (photoUploading || videoUploading) ? 'not-allowed' : 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            <IC size={14} color="#000"><Send /></IC> {photoUploading ? '...' : t('postBtn')}
+            <IC size={14} color="#000"><Send /></IC> {(photoUploading || videoUploading) ? '⏳' : t('postBtn')}
           </button>
         </div>
       </div>
