@@ -1589,7 +1589,7 @@ const handleVideoPost = async (file, title) => {
   return (
     <div style={{ backgroundColor: '#0D0A06', minHeight: '100vh', maxWidth: '430px', margin: '0 auto', color: '#F0E6C8', fontFamily: '"Segoe UI", system-ui, sans-serif', position: 'relative', overflowX: 'hidden' }}>
       {activeTab === 'video' && videos[currentVideoIndex] && !videos[currentVideoIndex].isLong && renderVideoFeed()}
-      {(activeTab !== 'video' || videos[currentVideoIndex].isLong) && (
+      {(activeTab !== 'video') && (
         <>
           {/* Header */}
           <header style={{ backgroundColor: 'rgba(13,10,6,0.97)', backdropFilter: 'blur(20px)', padding: '14px 16px', borderBottom: '1px solid #2a2010', position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
