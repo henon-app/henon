@@ -803,6 +803,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   // ---- Video upload state ----
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [videoUploading, setVideoUploading] = useState(false);
+  const [videoUploadProgress, setVideoUploadProgress] = useState(0);
   const videoInputRef = useRef(null);
 
   const ADMIN_CODE = 'HENON2024';
@@ -848,15 +849,33 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   };
 
   const uploadVideoToStorage = async (file) => {
-    const fileExt = file.name.split(".").pop();
-    const fileName = Date.now() + "-" + Math.random().toString(36).slice(2) + "." + fileExt;
-    const filePath = "posts/" + fileName;
-    const { error } = await supabase.storage
-      .from("post-videos")
-      .upload(filePath, file, { cacheControl: "3600", upsert: false });
-    if (error) throw error;
-    const { data } = supabase.storage.from("post-videos").getPublicUrl(filePath);
-    return data.publicUrl;
+    const fileExt = file.name.split('.').pop();
+    const fileName = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + fileExt;
+    const filePath = 'posts/' + fileName;
+
+    // Progress simulation — Supabase SDK ያለ real progress
+    setVideoUploadProgress(0);
+    const progressInterval = setInterval(() => {
+      setVideoUploadProgress(prev => {
+        if (prev >= 90) { clearInterval(progressInterval); return 90; }
+        return prev + Math.floor(Math.random() * 15 + 5);
+      });
+    }, 400);
+
+    try {
+      const { error } = await supabase.storage
+        .from('post-videos')
+        .upload(filePath, file, { cacheControl: '3600', upsert: false });
+      clearInterval(progressInterval);
+      if (error) throw error;
+      setVideoUploadProgress(100);
+      const { data } = supabase.storage.from('post-videos').getPublicUrl(filePath);
+      return data.publicUrl;
+    } catch (err) {
+      clearInterval(progressInterval);
+      setVideoUploadProgress(0);
+      throw err;
+    }
   };
 
   const uploadPhotoToStorage = async (file) => {
@@ -940,6 +959,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       setNewPost('');
       setSelectedPhoto(null);
       setSelectedVideo(null);
+      setVideoUploadProgress(0);
       if (photoInputRef.current) photoInputRef.current.value = '';
       if (videoInputRef.current) videoInputRef.current.value = '';
       triggerToast('መልዕክት ተጋርቷል! 🙏');
@@ -1045,19 +1065,54 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           </div>
         )}
 
-        {/* Video preview */}
+        {/* Video preview + progress */}
         {selectedVideo && (
-          <div style={{ position: 'relative', marginBottom: '10px', borderRadius: '12px', overflow: 'hidden', background: '#000' }}>
-            <video src={selectedVideo.url} controls style={{ width: '100%', maxHeight: '200px', borderRadius: '12px', display: 'block' }} />
-            <button onClick={() => { setSelectedVideo(null); if (videoInputRef.current) videoInputRef.current.value = ''; }}
-              style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <X size={14} color="#fff" />
-            </button>
-            <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.6)', borderRadius: '8px', padding: '3px 8px', fontSize: '10px', color: '#B8860B' }}>
-              {videoUploading ? '⏳ ቪዲዮ እየተጫነ...' : '✅ ' + selectedVideo.name}
-            </div>
+          <div style={{ marginBottom: '10px', borderRadius: '12px', overflow: 'hidden', background: '#000', position: 'relative' }}>
+            {/* Video preview — ወዲያው ይታያል */}
+            <video
+              src={selectedVideo.url}
+              controls={!videoUploading}
+              style={{ width: '100%', maxHeight: '220px', display: 'block', borderRadius: '12px', opacity: videoUploading ? 0.5 : 1 }}
+            />
+
+            {/* X button — upload እየሆነ ካልሆነ ብቻ */}
+            {!videoUploading && (
+              <button
+                onClick={() => { setSelectedVideo(null); setVideoUploadProgress(0); if (videoInputRef.current) videoInputRef.current.value = ''; }}
+                style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.75)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <X size={14} color="#fff" />
+              </button>
+            )}
+
+            {/* Upload overlay */}
+            {videoUploading && (
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', padding: '20px' }}>
+                {/* Spinner */}
+                <div style={{ width: '48px', height: '48px', border: '4px solid #333', borderTop: '4px solid #B8860B', borderRadius: '50%', marginBottom: '14px', animation: 'spin 1s linear infinite' }} />
+                {/* Percent */}
+                <div style={{ color: '#B8860B', fontWeight: '800', fontSize: '22px', marginBottom: '8px' }}>
+                  {videoUploadProgress}%
+                </div>
+                <div style={{ color: '#fff', fontSize: '13px', marginBottom: '10px' }}>ቪዲዮ እየተጫነ...</div>
+                {/* Progress bar */}
+                <div style={{ width: '100%', height: '6px', background: '#333', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: videoUploadProgress + '%', background: 'linear-gradient(90deg, #B8860B, #FFD700)', borderRadius: '4px', transition: 'width 0.3s ease' }} />
+                </div>
+                <div style={{ color: '#666', fontSize: '10px', marginTop: '6px' }}>
+                  {selectedVideo.name.length > 30 ? selectedVideo.name.slice(0,30) + '...' : selectedVideo.name}
+                </div>
+              </div>
+            )}
+
+            {/* Ready badge */}
+            {!videoUploading && (
+              <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'rgba(0,0,0,0.7)', borderRadius: '8px', padding: '3px 10px', fontSize: '11px', color: '#B8860B', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                ✅ ቪዲዮ ዝግጁ ነው
+              </div>
+            )}
           </div>
         )}
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid #2a2010', paddingTop: '10px' }}>
           <div style={{ display: 'flex', gap: '4px' }}>
