@@ -1017,7 +1017,7 @@ const handleVideoPost = async (file, title) => {
         .map(p => (
           <PostCard
             key={p.id}
-            p={p}
+             p={p}
             user={user}
             triggerToast={triggerToast}
             t={t}
@@ -1031,72 +1031,38 @@ const handleVideoPost = async (file, title) => {
     </div>
   );
 
-  // ===================== RENDER VIDEO FEED =====================
+  //===================== RENDER VIDEO FEED =====================
   const renderVideoFeed = () => {
     const video = videos[currentVideoIndex];
     if (!video) {
       return (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 500 }}>
-          <button onClick={() => setActiveTab('home')} style={{ position: 'absolute', top: '20px', left: '16px', zIndex: 10, background: 'rgba(0,0,0,0.5)', border: 'none', color: '#fff', cursor: 'pointer', borderRadius: '50%', width: '38px', height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <IC size={20} color="#fff"><ArrowLeft /></IC>
-          </button>
-          <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#0D0A06,#1A1508)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <button onClick={() => setIsPlaying(!isPlaying)} style={{ background: 'rgba(184,134,11,0.25)', border: '1px solid rgba(184,134,11,0.5)', borderRadius: '50%', width: '64px', height: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <IC size={28} color="#B8860B">{isPlaying ? <Pause /> : <PlayCircle />}</IC>
-            </button>
-          </div>
-          <div style={{ position: 'absolute', right: '12px', bottom: '110px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', zIndex: 5 }}>
-            <Avatar initials={video?.initials} color={video.color} size={44} />
-            {[
-              { Icon: Heart, count: video.likes + (likedvideos[video.id] ? 1 : 0), active: likedvideos[video.id], action: () => setLikedvideos(p => ({ ...p, [video.id]: !p[video.id] })) },
-              { Icon: HandHeart, count: video.prayers, action: () => triggerToast(t('prayer')) },
-              { Icon: MessageCircle, count: video.comments, action: () => triggerToast('አስተያየቶች') },
-              { Icon: BookMarked, count: t('saved'), active: savedvideos[video.id], action: () => { setSavedvideos(p => ({ ...p, [video.id]: !p[video.id] })); triggerToast(t('saved')); } },
-              { Icon: Share2, count: t('share'), action: () => triggerToast(t('shared')) },
-            ].map(({ Icon: Ic, count, active, action }, i) => (
-              <div key={i} style={{ textAlign: 'center', cursor: 'pointer' }} onClick={action}>
-                <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(255,255,255,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <IC size={22} color={active ? '#FFD700' : '#fff'}><Ic /></IC>
-                </div>
-                <div style={{ fontSize: '10px', color: '#fff', marginTop: '3px' }}>{count}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ position: 'absolute', bottom: '72px', left: '12px', right: '66px', zIndex: 5 }}>
-            <div style={{ fontWeight: '700', fontSize: '15px', marginBottom: '4px' }}>{video.author} {video.verified && <BadgeCheck size={14} color="#B8860B" />}</div>
-            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', marginBottom: '6px' }}>{video.title}</div>
-            <span style={{ background: 'rgba(184,134,11,0.2)', border: '1px solid rgba(184,134,11,0.4)', padding: '2px 10px', borderRadius: '10px', fontSize: '11px', color: '#B8860B' }}>{video.tag}</span>
-          </div>
-          <div style={{ position: 'absolute', bottom: '14px', left: 0, right: 0, display: 'flex', justifyContent: 'space-around', zIndex: 5 }}>
-            <button onClick={() => handlevideoswipe('down')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', cursor: 'pointer', borderRadius: '20px', padding: '7px 20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <IC size={14} color="#fff"><ChevronUp /></IC> ቀዳሚ
-            </button>
-            <button onClick={() => handlevideoswipe('up')} style={{ background: 'rgba(184,134,11,0.25)', border: '1px solid #B8860B', color: '#B8860B', cursor: 'pointer', borderRadius: '20px', padding: '7px 20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              ቀጣይ <IC size={14} color="#B8860B"><ChevronDown /></IC>
-            </button>
-          </div>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ color: '#B8860B', fontSize: '16px' }}>ምንም ቪዲዮ የለም</div>
         </div>
       );
     }
     return (
       <div style={{ paddingBottom: '20px' }}>
         <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: '14px', overflow: 'hidden', marginBottom: '12px' }}>
-          <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#0D0A06,#1A1508)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <button onClick={() => setIsPlaying(!isPlaying)} style={{ background: 'rgba(184,134,11,0.85)', border: 'none', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <IC size={26} color="#000">{isPlaying ? <Pause /> : <PlayCircle />}</IC>
-            </button>
-          </div>
-          <div style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.75)', padding: '3px 8px', borderRadius: '6px', fontSize: '11px' }}>{video.duration}</div>
+          {video.video_url ? (
+            <video src={video.video_url} controls style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', background: 'linear-gradient(135deg,#0D0A06,#1A1508)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button onClick={() => setIsPlaying(!isPlaying)} style={{ background: 'rgba(184,134,11,0.85)', border: 'none', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <IC size={26} color="#000">{isPlaying ? <Pause /> : <PlayCircle />}</IC>
+              </button>
+            </div>
+          )}
         </div>
         <h3 style={{ margin: '0 0 10px', fontSize: '16px', color: '#F0E6C8' }}>{video.title}</h3>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Avatar initials={video.initials} color={video.color} size={36} />
+            <Avatar initials={video.user_name?.slice(0,2).toUpperCase() || 'UN'} color='#B8860B' size={36} />
             <div>
-              <div style={{ fontSize: '13px', fontWeight: '700', color: '#F0E6C8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                {video.author} {video.verified && <BadgeCheck size={13} color="#B8860B" />}
+              <div style={{ fontSize: '13px', fontWeight: '700', color: '#F0E6C8' }}>
+                {video.user_name || 'Unknown'}
               </div>
-              <div style={{ fontSize: '11px', color: '#888' }}>{video.views}</div>
+              <div style={{ fontSize: '11px', color: '#888' }}>{video.views || 0} views</div>
             </div>
           </div>
           <button style={{ background: '#B8860B', border: 'none', borderRadius: '20px', padding: '7px 16px', color: '#000', fontWeight: '700', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}>
@@ -1105,8 +1071,8 @@ const handleVideoPost = async (file, title) => {
         </div>
         <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }}>
           {[
-            { Icon: Heart, label: video.likes, action: () => setLikedvideos(p => ({ ...p, [video.id]: !p[video.id] })) },
-            { Icon: HandHeart, label: video.prayers, action: () => triggerToast(t('prayer')) },
+            { Icon: Heart, label: video.likes || 0, action: () => setLikedvideos(p => ({ ...p, [video.id]: !p[video.id] })) },
+            { Icon: HandHeart, label: video.prayers || 0, action: () => triggerToast(t('prayer')) },
             { Icon: Download, label: t('downloaded'), action: () => triggerToast(t('downloaded')) },
             { Icon: BookMarked, label: t('saved'), action: () => triggerToast(t('saved')) },
             { Icon: Share2, label: t('share'), action: () => triggerToast(t('shared')) },
@@ -1121,13 +1087,12 @@ const handleVideoPost = async (file, title) => {
           {videos.filter((_, i) => i !== currentVideoIndex).map((v, i) => (
             <div key={i} onClick={() => setCurrentVideoIndex(videos.indexOf(v))} style={{ display: 'flex', gap: '10px', marginBottom: '12px', cursor: 'pointer' }}>
               <div style={{ width: '120px', height: '70px', background: '#1A1508', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #2a2010', position: 'relative' }}>
-                <Avatar initials={v.initials} color={v.color} size={36} />
-                <div style={{ position: 'absolute', bottom: '4px', right: '4px', background: 'rgba(0,0,0,0.7)', padding: '1px 5px', borderRadius: '4px', fontSize: '9px' }}>{v.duration}</div>
+                <Avatar initials={v.user_name?.slice(0,2).toUpperCase() || 'UN'} color='#B8860B' size={36} />
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '13px', fontWeight: '600', color: '#F0E6C8' }}>{v.title}</div>
-                <div style={{ fontSize: '11px', color: '#888' }}>{v.author}</div>
-                <div style={{ fontSize: '11px', color: '#B8860B' }}>{v.views}</div>
+                <div style={{ fontSize: '11px', color: '#888' }}>{v.user_name || 'Unknown'}</div>
+                <div style={{ fontSize: '11px', color: '#B8860B' }}>{v.views || 0} views</div>
               </div>
             </div>
           ))}
@@ -1621,21 +1586,10 @@ const handleVideoPost = async (file, title) => {
   );
 
   // ===================== MAIN RENDER =====================
- 
-// ===================== MAIN RENDER =====================
   return (
     <div style={{ backgroundColor: '#0D0A06', minHeight: '100vh', maxWidth: '430px', margin: '0 auto', color: '#F0E6C8', fontFamily: '"Segoe UI", system-ui, sans-serif', position: 'relative', overflowX: 'hidden' }}>
-      
-      {/* 1. የቪዲዮ ገጽ ሲመረጥ (Reels Style) */}
-      {activeTab === 'video' && videos?.[currentVideoIndex] && !videos?.[currentVideoIndex]?.isLong && (
-        <> 
-          {/* እዚህ ጋር renderVideoFeed() መጥራቱ በጣም አስፈላጊ ነው */}
-          {renderVideoFeed()} 
-        </>
-      )}
-
-      {/* 2. ሌሎች ገጾች ሲመረጡ የሚታይ Header */}
-      {(activeTab !== 'video' || videos?.[currentVideoIndex]?.isLong) && (
+      {activeTab === 'video' && videos[currentVideoIndex] && !videos[currentVideoIndex].isLong && renderVideoFeed()}
+      {(activeTab !== 'video' || videos[currentVideoIndex].isLong) && (
         <>
           {/* Header */}
           <header style={{ backgroundColor: 'rgba(13,10,6,0.97)', backdropFilter: 'blur(20px)', padding: '14px 16px', borderBottom: '1px solid #2a2010', position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1657,7 +1611,7 @@ const handleVideoPost = async (file, title) => {
                 { Icon: SlidersHorizontal, action: () => setActiveTab('settings') },
               ].map(({ Icon: Ic, action, badge }, i) => (
                 <button key={i} onClick={action} style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', position: 'relative', padding: '7px', borderRadius: '10px', display: 'flex' }}>
-                  <Ic size={20} color="#B8860B" />
+                  <IC size={20} color="#B8860B"><Ic /></IC>
                   {badge && <div style={{ position: 'absolute', top: '5px', right: '5px', background: '#FF0000', width: '7px', height: '7px', borderRadius: '50%' }}></div>}
                 </button>
               ))}
