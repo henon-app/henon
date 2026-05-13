@@ -1046,7 +1046,7 @@ const handleVideoPost = async (file, title) => {
             </button>
           </div>
           <div style={{ position: 'absolute', right: '12px', bottom: '110px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', zIndex: 5 }}>
-            <Avatar initials={video.initials} color={video.color} size={44} />
+            <Avatar initials={video?.initials} color={video.color} size={44} />
             {[
               { Icon: Heart, count: video.likes + (likedvideos[video.id] ? 1 : 0), active: likedvideos[video.id], action: () => setLikedvideos(p => ({ ...p, [video.id]: !p[video.id] })) },
               { Icon: HandHeart, count: video.prayers, action: () => triggerToast(t('prayer')) },
