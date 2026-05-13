@@ -528,10 +528,71 @@ const AuthScreen = ({ onAuthSuccess }) => {
 const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentPostId, likedPosts, setLikedPosts, userInitials }) => {
   const isCommentOpen = openCommentPostId === p.id;
 
-  // ---- Comment state (per card) ----
+  // ---- Comment state ----
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
+
+  // ---- Like/Prayer state ----
+  const [likeCount, setLikeCount] = useState(p.likes || 0);
+  const [prayerCount, setPrayerCount] = useState(p.prayers || 0);
+  const [userLiked, setUserLiked] = useState(false);
+  const [userPrayed, setUserPrayed] = useState(false);
+  const [reactionLoading, setReactionLoading] = useState(false);
+
+  const fetchReactions = useCallback(async () => {
+    const { count: likes } = await supabase
+      .from("reactions").select("*", { count: "exact", head: true })
+      .eq("post_id", Number(p.id)).eq("type", "like");
+    const { count: prayers } = await supabase
+      .from("reactions").select("*", { count: "exact", head: true })
+      .eq("post_id", Number(p.id)).eq("type", "prayer");
+    if (likes !== null) setLikeCount(likes);
+    if (prayers !== null) setPrayerCount(prayers);
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from("reactions").select("type")
+      .eq("post_id", Number(p.id)).eq("user_id", user.id);
+    if (data) {
+      setUserLiked(data.some(r => r.type === "like"));
+      setUserPrayed(data.some(r => r.type === "prayer"));
+    }
+  }, [p.id, user?.id]);
+
+  useEffect(() => { fetchReactions(); }, [fetchReactions]);
+
+  const handleLike = async () => {
+    if (!user?.id || reactionLoading) return;
+    setReactionLoading(true);
+    if (userLiked) {
+      await supabase.from("reactions").delete()
+        .eq("post_id", Number(p.id)).eq("user_id", user.id).eq("type", "like");
+      setUserLiked(false);
+      setLikeCount(prev => Math.max(0, prev - 1));
+    } else {
+      await supabase.from("reactions").insert([{ post_id: Number(p.id), user_id: user.id, type: "like" }]);
+      setUserLiked(true);
+      setLikeCount(prev => prev + 1);
+    }
+    setReactionLoading(false);
+  };
+
+  const handlePrayer = async () => {
+    if (!user?.id || reactionLoading) return;
+    setReactionLoading(true);
+    if (userPrayed) {
+      await supabase.from("reactions").delete()
+        .eq("post_id", Number(p.id)).eq("user_id", user.id).eq("type", "prayer");
+      setUserPrayed(false);
+      setPrayerCount(prev => Math.max(0, prev - 1));
+    } else {
+      await supabase.from("reactions").insert([{ post_id: Number(p.id), user_id: user.id, type: "prayer" }]);
+      setUserPrayed(true);
+      setPrayerCount(prev => prev + 1);
+      triggerToast(t("prayer"));
+    }
+    setReactionLoading(false);
+  };
 
   // ---- Supabase: ኮሜንቶችን ማምጣት ----
   const fetchComments = useCallback(async () => {
@@ -636,8 +697,8 @@ const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentP
       {/* Actions */}
       <div style={{ display: 'flex', justifyContent: 'space-around', borderTop: '1px solid #2a2010', padding: '8px 4px' }}>
         {[
-          { Icon: Heart, label: (p.likes || 0) + (likedPosts[p.id] ? 1 : 0), active: likedPosts[p.id], activeColor: '#FF4500', action: () => setLikedPosts(prev => ({ ...prev, [p.id]: !prev[p.id] })) },
-          { Icon: HandHeart, label: p.prayers || 0, action: () => triggerToast(t('prayer')) },
+          { Icon: Heart, label: likeCount, active: userLiked, activeColor: '#FF4500', action: handleLike },
+          { Icon: HandHeart, label: prayerCount, active: userPrayed, activeColor: '#4facfe', action: handlePrayer },
           { Icon: MessageCircle, label: comments.length, active: isCommentOpen, activeColor: '#B8860B', action: () => setOpenCommentPostId(isCommentOpen ? null : p.id) }, // ✅ real-time count
           { Icon: Share2, label: t('share'), action: () => triggerToast(t('shared')) },
         ].map(({ Icon: Ic, label, active, activeColor, action }, i) => (
