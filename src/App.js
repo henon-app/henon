@@ -844,7 +844,41 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
     setCurrentTrack(song); setShowPlayer(true); setIsPlaying(true);
     triggerToast(`${t('nowPlaying')} ${song.title}`);
   };
+// ---- Video Upload to Supabase ----
+const handleVideoUpload = async (file) => {
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+  const filePath = `videos/${fileName}`;
 
+  const { error: uploadError } = await supabase.storage
+    .from('videos')
+    .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+  if (uploadError) throw uploadError;
+
+  const { data } = supabase.storage
+    .from('videos')
+    .getPublicUrl(filePath);
+
+  return data.publicUrl;
+};
+
+const handleVideoPost = async (file, title) => {
+  try {
+    const videoUrl = await handleVideoUpload(file);
+    const { error } = await supabase.from('videos').insert([{
+      title: title || 'Untitled',
+      video_url: videoUrl,
+      user_id: user?.id || null,
+      user_name: user?.name || 'User',
+      user_avatar: user?.avatar || null,
+    }]);
+    if (error) throw error;
+    triggerToast('Video uploaded successfully!');
+  } catch (err) {
+    triggerToast('Upload failed: ' + err.message);
+  }
+};
   const handleVideoSwipe = (dir) => {
     if (dir === 'up' && currentVideoIndex < VIDEOS.length - 1) setCurrentVideoIndex(i => i + 1);
     if (dir === 'down' && currentVideoIndex > 0) setCurrentVideoIndex(i => i - 1);
