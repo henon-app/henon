@@ -543,7 +543,12 @@ const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentP
     if (!error && data) setComments(data);
   }, [p.id]);
 
-  // ---- ሲከፈት ኮሜንቶች ይምጡ ----
+  // ---- ሲጀምር ኮሜንቶች ይምጡ (count ለማሳየት) ----
+  useEffect(() => {
+    fetchComments();
+  }, [fetchComments]);
+
+  // ---- ሲከፈት ደግሞ ኮሜንቶች ይምጡ ----
   useEffect(() => {
     if (isCommentOpen) fetchComments();
   }, [isCommentOpen, fetchComments]);
@@ -633,7 +638,7 @@ const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentP
         {[
           { Icon: Heart, label: (p.likes || 0) + (likedPosts[p.id] ? 1 : 0), active: likedPosts[p.id], activeColor: '#FF4500', action: () => setLikedPosts(prev => ({ ...prev, [p.id]: !prev[p.id] })) },
           { Icon: HandHeart, label: p.prayers || 0, action: () => triggerToast(t('prayer')) },
-          { Icon: MessageCircle, label: comments.length, active: isCommentOpen, activeColor: '#B8860B', action: () => setOpenCommentPostId(isCommentOpen ? null : p.id) },
+          { Icon: MessageCircle, label: comments.length, active: isCommentOpen, activeColor: '#B8860B', action: () => setOpenCommentPostId(isCommentOpen ? null : p.id) }, // ✅ real-time count
           { Icon: Share2, label: t('share'), action: () => triggerToast(t('shared')) },
         ].map(({ Icon: Ic, label, active, activeColor, action }, i) => (
           <button key={i} onClick={action} style={{ background: 'none', border: 'none', color: active ? activeColor : '#666', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '4px 8px' }}>
