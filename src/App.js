@@ -180,13 +180,18 @@ const PLAYLIST = [
   { id: 4, title: 'ኃይሌ ብርታቴ', artist: 'ሊቀ መዘምራን ይልማ', duration: '4:45' },
 ];
 
-const VIDEOS = [
-  { id: 1, author: 'ደ/ዘማርያም ቤ/ክ', initials: 'ደዘ', color: '#B8860B', title: 'የቅዳሴ ሥርዓት ማብራሪያ', views: '23.5k', likes: 1200, prayers: 890, comments: 45, duration: '18:45', verified: true, tag: '#ቅዳሴ', isLong: true },
-  { id: 2, author: 'ዘማሪ ምርትነሽ', initials: 'ዘም', color: '#4facfe', title: 'ሰላም ለኪ - ያሬዳዊ ዝማሬ', views: '45.2k', likes: 3400, prayers: 2100, comments: 120, duration: '0:45', verified: true, tag: '#ዝማሬ', isLong: false },
-  { id: 3, author: 'ዲያቆን ኃይሉ', initials: 'ዲኃ', color: '#fa709a', title: 'የጾም ምስጢርና ትርጉም', views: '12.8k', likes: 890, prayers: 1200, comments: 67, duration: '22:30', verified: false, tag: '#ጾም', isLong: true },
-  { id: 4, author: 'አቡነ ቅዱስ', initials: 'አቅ', color: '#43e97b', title: 'ስለ ትንሳኤ - ጥልቅ ትምህርት', views: '78.9k', likes: 5600, prayers: 4300, comments: 340, duration: '25:15', verified: true, tag: '#ትምህርት', isLong: true },
-  { id: 5, author: 'ወ/ሮ ህይወት', initials: 'ወህ', color: '#fee140', title: 'ምስክርነቴ - እግዚአብሔር ፈወሰኝ', views: '34.1k', likes: 2800, prayers: 3500, comments: 210, duration: '0:58', verified: false, tag: '#ምስክርነት', isLong: false },
-];
+const [VIDEOS, setVIDEOS] = useState([]);
+
+useEffect(() => {
+  const fetchVideos = async () => {
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) setVIDEOS(data);
+  };
+  fetchVideos();
+}, []);
 
 const LIVE_STREAMS = [
   { id: 1, author: 'ቅዱስ እስጢፋኖስ ቤ/ክ', initials: 'ቅእ', color: '#B8860B', title: 'የምሽት ጸሎት', viewers: 12415, verified: true },
