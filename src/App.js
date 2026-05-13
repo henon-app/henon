@@ -48,7 +48,7 @@ const TRANSLATIONS = {
     existingAccounts: 'የሚጠቀሙባቸው ሂሳቦች', newAccountCreate: 'አዲስ ሂሳብ ፍጠር',
     addAccountTitle: 'ሌላ ሂሳብ ጨምር', sacredMusic: 'ያሬዳዊ ዜማዎች',
     renewSpirit: 'መንፈስን የሚያድሱ ዝማሬዎች', playAll: 'አጫውት',
-    nowPlaying: 'በመጫወት ላይ:', relatedVideos: 'ተዛማጅ ቪዲዮዎች',
+    nowPlaying: 'በመጫወት ላይ:', relatedvideos: 'ተዛማጅ ቪዲዮዎች',
     giftSent: 'ስጦታ ተልኳል!', commentInput: 'ሀሳብ ይስጡ...',
     photoLabel: 'ፎቶ', addStory: 'አክል', downloaded: 'ወረደ!',
     copied: 'ተቀድቷል!', saved: 'ተቀምጧል!', shared: 'ተጋርቷል!',
@@ -95,7 +95,7 @@ const TRANSLATIONS = {
     existingAccounts: 'Your Accounts', newAccountCreate: 'Create New Account',
     addAccountTitle: 'Add Another Account', sacredMusic: 'Sacred Music',
     renewSpirit: 'Songs that renew the spirit', playAll: 'Play All',
-    nowPlaying: 'Now playing:', relatedVideos: 'Related Videos',
+    nowPlaying: 'Now playing:', relatedvideos: 'Related videos',
     giftSent: 'Gift sent!', commentInput: 'Say something...',
     photoLabel: 'Photo', addStory: 'Add', downloaded: 'Downloaded!',
     copied: 'Copied!', saved: 'Saved!', shared: 'Shared!',
@@ -180,18 +180,13 @@ const PLAYLIST = [
   { id: 4, title: 'ኃይሌ ብርታቴ', artist: 'ሊቀ መዘምራን ይልማ', duration: '4:45' },
 ];
 
-const [VIDEOS, setVIDEOS] = useState([]);
-
-useEffect(() => {
-  const fetchVideos = async () => {
-    const { data, error } = await supabase
-      .from('videos')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (!error && data) setVIDEOS(data);
-  };
-  fetchVideos();
-}, []);
+const videos = [
+  { id: 1, author: 'ደ/ዘማርያም ቤ/ክ', initials: 'ደዘ', color: '#B8860B', title: 'የቅዳሴ ሥርዓት ማብራሪያ', views: '23.5k', likes: 1200, prayers: 890, comments: 45, duration: '18:45', verified: true, tag: '#ቅዳሴ', isLong: true },
+  { id: 2, author: 'ዘማሪ ምርትነሽ', initials: 'ዘም', color: '#4facfe', title: 'ሰላም ለኪ - ያሬዳዊ ዝማሬ', views: '45.2k', likes: 3400, prayers: 2100, comments: 120, duration: '0:45', verified: true, tag: '#ዝማሬ', isLong: false },
+  { id: 3, author: 'ዲያቆን ኃይሉ', initials: 'ዲኃ', color: '#fa709a', title: 'የጾም ምስጢርና ትርጉም', views: '12.8k', likes: 890, prayers: 1200, comments: 67, duration: '22:30', verified: false, tag: '#ጾም', isLong: true },
+  { id: 4, author: 'አቡነ ቅዱስ', initials: 'አቅ', color: '#43e97b', title: 'ስለ ትንሳኤ - ጥልቅ ትምህርት', views: '78.9k', likes: 5600, prayers: 4300, comments: 340, duration: '25:15', verified: true, tag: '#ትምህርት', isLong: true },
+  { id: 5, author: 'ወ/ሮ ህይወት', initials: 'ወህ', color: '#fee140', title: 'ምስክርነቴ - እግዚአብሔር ፈወሰኝ', views: '34.1k', likes: 2800, prayers: 3500, comments: 210, duration: '0:58', verified: false, tag: '#ምስክርነት', isLong: false },
+];
 
 const LIVE_STREAMS = [
   { id: 1, author: 'ቅዱስ እስጢፋኖስ ቤ/ክ', initials: 'ቅእ', color: '#B8860B', title: 'የምሽት ጸሎት', viewers: 12415, verified: true },
@@ -720,8 +715,8 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const [likedPosts, setLikedPosts] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [likedVideos, setLikedVideos] = useState({});
-  const [savedVideos, setSavedVideos] = useState({});
+  const [likedvideos, setLikedvideos] = useState({});
+  const [savedvideos, setSavedvideos] = useState({});
   const [activeLive, setActiveLive] = useState(null);
   const [uploadType, setUploadType] = useState(null);
   const [uploadCaption, setUploadCaption] = useState('');
@@ -730,7 +725,18 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const [verifyCode, setVerifyCode] = useState('');
   const [verifyStatus, setVerifyStatus] = useState(null);
   const [openCommentPostId, setOpenCommentPostId] = useState(null);
+const [videos, setvideos] = useState([]);
 
+useEffect(() => {
+  const fetchvideos = async () => {
+    const { data, error } = await supabase
+      .from('videos')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (!error && data) setvideos(data);
+  };
+  fetchvideos();
+}, []);
   // ---- Photo upload state ----
   const [selectedPhoto, setSelectedPhoto] = useState(null); // { url, file, name }
   const [photoUploading, setPhotoUploading] = useState(false);
@@ -884,8 +890,8 @@ const handleVideoPost = async (file, title) => {
     triggerToast('Upload failed: ' + err.message);
   }
 };
-  const handleVideoSwipe = (dir) => {
-    if (dir === 'up' && currentVideoIndex < VIDEOS.length - 1) setCurrentVideoIndex(i => i + 1);
+  const handlevideoswipe = (dir) => {
+    if (dir === 'up' && currentVideoIndex < videos.length - 1) setCurrentVideoIndex(i => i + 1);
     if (dir === 'down' && currentVideoIndex > 0) setCurrentVideoIndex(i => i - 1);
   };
 
@@ -1027,7 +1033,7 @@ const handleVideoPost = async (file, title) => {
 
   // ===================== RENDER VIDEO FEED =====================
   const renderVideoFeed = () => {
-    const video = VIDEOS[currentVideoIndex];
+    const video = videos[currentVideoIndex];
     if (!video.isLong) {
       return (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#000', zIndex: 500 }}>
@@ -1042,10 +1048,10 @@ const handleVideoPost = async (file, title) => {
           <div style={{ position: 'absolute', right: '12px', bottom: '110px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', zIndex: 5 }}>
             <Avatar initials={video.initials} color={video.color} size={44} />
             {[
-              { Icon: Heart, count: video.likes + (likedVideos[video.id] ? 1 : 0), active: likedVideos[video.id], action: () => setLikedVideos(p => ({ ...p, [video.id]: !p[video.id] })) },
+              { Icon: Heart, count: video.likes + (likedvideos[video.id] ? 1 : 0), active: likedvideos[video.id], action: () => setLikedvideos(p => ({ ...p, [video.id]: !p[video.id] })) },
               { Icon: HandHeart, count: video.prayers, action: () => triggerToast(t('prayer')) },
               { Icon: MessageCircle, count: video.comments, action: () => triggerToast('አስተያየቶች') },
-              { Icon: BookMarked, count: t('saved'), active: savedVideos[video.id], action: () => { setSavedVideos(p => ({ ...p, [video.id]: !p[video.id] })); triggerToast(t('saved')); } },
+              { Icon: BookMarked, count: t('saved'), active: savedvideos[video.id], action: () => { setSavedvideos(p => ({ ...p, [video.id]: !p[video.id] })); triggerToast(t('saved')); } },
               { Icon: Share2, count: t('share'), action: () => triggerToast(t('shared')) },
             ].map(({ Icon: Ic, count, active, action }, i) => (
               <div key={i} style={{ textAlign: 'center', cursor: 'pointer' }} onClick={action}>
@@ -1062,10 +1068,10 @@ const handleVideoPost = async (file, title) => {
             <span style={{ background: 'rgba(184,134,11,0.2)', border: '1px solid rgba(184,134,11,0.4)', padding: '2px 10px', borderRadius: '10px', fontSize: '11px', color: '#B8860B' }}>{video.tag}</span>
           </div>
           <div style={{ position: 'absolute', bottom: '14px', left: 0, right: 0, display: 'flex', justifyContent: 'space-around', zIndex: 5 }}>
-            <button onClick={() => handleVideoSwipe('down')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', cursor: 'pointer', borderRadius: '20px', padding: '7px 20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button onClick={() => handlevideoswipe('down')} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', cursor: 'pointer', borderRadius: '20px', padding: '7px 20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <IC size={14} color="#fff"><ChevronUp /></IC> ቀዳሚ
             </button>
-            <button onClick={() => handleVideoSwipe('up')} style={{ background: 'rgba(184,134,11,0.25)', border: '1px solid #B8860B', color: '#B8860B', cursor: 'pointer', borderRadius: '20px', padding: '7px 20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <button onClick={() => handlevideoswipe('up')} style={{ background: 'rgba(184,134,11,0.25)', border: '1px solid #B8860B', color: '#B8860B', cursor: 'pointer', borderRadius: '20px', padding: '7px 20px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               ቀጣይ <IC size={14} color="#B8860B"><ChevronDown /></IC>
             </button>
           </div>
@@ -1099,7 +1105,7 @@ const handleVideoPost = async (file, title) => {
         </div>
         <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }}>
           {[
-            { Icon: Heart, label: video.likes, action: () => setLikedVideos(p => ({ ...p, [video.id]: !p[video.id] })) },
+            { Icon: Heart, label: video.likes, action: () => setLikedvideos(p => ({ ...p, [video.id]: !p[video.id] })) },
             { Icon: HandHeart, label: video.prayers, action: () => triggerToast(t('prayer')) },
             { Icon: Download, label: t('downloaded'), action: () => triggerToast(t('downloaded')) },
             { Icon: BookMarked, label: t('saved'), action: () => triggerToast(t('saved')) },
@@ -1111,9 +1117,9 @@ const handleVideoPost = async (file, title) => {
           ))}
         </div>
         <div style={{ marginTop: '18px' }}>
-          <h4 style={{ color: '#B8860B', marginBottom: '12px', fontSize: '14px' }}>{t('relatedVideos')}</h4>
-          {VIDEOS.filter((_, i) => i !== currentVideoIndex).map((v, i) => (
-            <div key={i} onClick={() => setCurrentVideoIndex(VIDEOS.indexOf(v))} style={{ display: 'flex', gap: '10px', marginBottom: '12px', cursor: 'pointer' }}>
+          <h4 style={{ color: '#B8860B', marginBottom: '12px', fontSize: '14px' }}>{t('relatedvideos')}</h4>
+          {videos.filter((_, i) => i !== currentVideoIndex).map((v, i) => (
+            <div key={i} onClick={() => setCurrentVideoIndex(videos.indexOf(v))} style={{ display: 'flex', gap: '10px', marginBottom: '12px', cursor: 'pointer' }}>
               <div style={{ width: '120px', height: '70px', background: '#1A1508', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #2a2010', position: 'relative' }}>
                 <Avatar initials={v.initials} color={v.color} size={36} />
                 <div style={{ position: 'absolute', bottom: '4px', right: '4px', background: 'rgba(0,0,0,0.7)', padding: '1px 5px', borderRadius: '4px', fontSize: '9px' }}>{v.duration}</div>
@@ -1617,8 +1623,8 @@ const handleVideoPost = async (file, title) => {
   // ===================== MAIN RENDER =====================
   return (
     <div style={{ backgroundColor: '#0D0A06', minHeight: '100vh', maxWidth: '430px', margin: '0 auto', color: '#F0E6C8', fontFamily: '"Segoe UI", system-ui, sans-serif', position: 'relative', overflowX: 'hidden' }}>
-      {activeTab === 'video' && VIDEOS[currentVideoIndex] && !VIDEOS[currentVideoIndex].isLong && renderVideoFeed()}
-      {(activeTab !== 'video' || VIDEOS[currentVideoIndex].isLong) && (
+      {activeTab === 'video' && videos[currentVideoIndex] && !videos[currentVideoIndex].isLong && renderVideoFeed()}
+      {(activeTab !== 'video' || videos[currentVideoIndex].isLong) && (
         <>
           {/* Header */}
           <header style={{ backgroundColor: 'rgba(13,10,6,0.97)', backdropFilter: 'blur(20px)', padding: '14px 16px', borderBottom: '1px solid #2a2010', position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
