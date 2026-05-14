@@ -594,6 +594,16 @@ const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentP
     setReactionLoading(false);
   };
 
+  // ---- View count ----
+  useEffect(() => {
+    const incrementView = async () => {
+      await supabase.from('posts')
+        .update({ view_count: (p.view_count || 0) + 1 })
+        .eq('id', p.id);
+    };
+    incrementView();
+  }, [p.id]);
+
   // ---- Share handler ----
   const handleShare = async () => {
     const postUrl = window.location.origin + '?post=' + p.id;
@@ -710,12 +720,38 @@ const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentP
 
       {/* Video player — video_url ካለ */}
       {p.video_url && (
-        <div style={{ width: '100%', background: '#000', borderRadius: '0' }}>
+        <div style={{ width: '100%', background: '#000', position: 'relative' }}>
           <video
             src={p.video_url}
             controls
             style={{ width: '100%', maxHeight: '300px', display: 'block' }}
           />
+          {/* Download + size overlay */}
+          <div style={{ position: 'absolute', top: '8px', right: '8px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+            {p.file_size && (
+              <span style={{ background: 'rgba(0,0,0,0.7)', color: '#B8860B', fontSize: '10px', padding: '3px 8px', borderRadius: '8px' }}>
+                {p.file_size} MB
+              </span>
+            )}
+            <button
+              onClick={async () => {
+                try {
+                  const res = await fetch(p.video_url);
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = (p.text || 'video').slice(0, 20) + '.mp4';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                  triggerToast('⬇️ ቪዲዮ ወረደ!');
+                } catch { triggerToast('Download አልተቻለም!'); }
+              }}
+              style={{ background: 'rgba(0,0,0,0.7)', border: '1px solid #B8860B55', borderRadius: '8px', padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <IC size={14} color="#B8860B"><Download /></IC>
+              <span style={{ color: '#B8860B', fontSize: '10px' }}>Download</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -732,6 +768,16 @@ const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentP
 
       {/* Text */}
       {p.text ? <div style={{ padding: '10px 16px 8px' }}><p style={{ lineHeight: '1.7', color: '#ddd', margin: 0, fontSize: '14px' }}>{p.text}</p></div> : null}
+
+      {/* Views count */}
+      {(p.view_count > 0 || p.views) && (
+        <div style={{ padding: '4px 16px 0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <IC size={11} color="#555"><Eye /></IC>
+          <span style={{ fontSize: '11px', color: '#555' }}>
+            {p.view_count ? p.view_count.toLocaleString() : p.views} እይታዎች
+          </span>
+        </div>
+      )}
 
       {/* Actions */}
       <div style={{ display: 'flex', justifyContent: 'space-around', borderTop: '1px solid #2a2010', padding: '8px 4px' }}>
@@ -1064,6 +1110,9 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       }
       setSongUploadProgress(95);
 
+      // File size in MB
+      const fileSizeMB = (selectedAudio.file.size / (1024 * 1024)).toFixed(1);
+
       // Insert to DB
       const { data, error } = await supabase.from('songs').insert([{
         title: songForm.title,
@@ -1074,6 +1123,8 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
         user_name: user.name,
         user_initials: user.name.slice(0, 2).toUpperCase(),
         user_color: '#B8860B',
+        file_size: fileSizeMB,
+        plays: 0,
       }]).select();
 
       clearInterval(interval);
@@ -1104,10 +1155,19 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 
   // ---- Audio play when currentSong changes ----
   useEffect(() => {
-    if (audioRef.current && currentSong) {
+    if (audioRef.current && currentSong?.audio_url) {
+      audioRef.current.pause();
       audioRef.current.src = currentSong.audio_url;
-      audioRef.current.play().catch(() => {});
-      setSongPlaying(true);
+      audioRef.current.load();
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          setSongPlaying(true);
+        }).catch(err => {
+          console.error('Audio play error:', err);
+          setSongPlaying(false);
+        });
+      }
     }
   }, [currentSong]);
 
@@ -1172,6 +1232,9 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
     }
 
     const postType = videoUrl ? 'video' : photoUrl ? 'photo' : 'text';
+    const fileSizeMB = selectedVideo?.file
+      ? (selectedVideo.file.size / (1024 * 1024)).toFixed(1)
+      : null;
 
     const { data, error } = await supabase.from('posts').insert([{
       text: newPost,
@@ -1181,9 +1244,11 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       type: postType,
       photo_url: photoUrl,
       video_url: videoUrl,
+      file_size: fileSizeMB,
       user_email: user.email,
       likes: 0,
       prayers: 0,
+      view_count: 0,
     }]).select();
 
     if (error) {
@@ -1938,11 +2003,32 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
                 <div style={{ fontSize: '10px', color: '#444', marginTop: '1px' }}>{song.user_name}</div>
               </div>
 
-              {/* Play indicator */}
-              <div style={{ flexShrink: 0 }}>
+              {/* Right side — play + download + size */}
+              <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
                 {currentSong?.id === song.id && songPlaying
                   ? <IC size={20} color="#B8860B"><Volume2 /></IC>
                   : <IC size={20} color="#444"><PlayCircle /></IC>}
+                {song.file_size && (
+                  <span style={{ fontSize: '9px', color: '#555' }}>{song.file_size} MB</span>
+                )}
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    try {
+                      const res = await fetch(song.audio_url);
+                      const blob = await res.blob();
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = song.title + '.mp3';
+                      a.click();
+                      URL.revokeObjectURL(url);
+                      triggerToast('⬇️ ' + song.title + ' ወረደ!');
+                    } catch { triggerToast('Download አልተቻለም!'); }
+                  }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}>
+                  <IC size={15} color="#666"><Download /></IC>
+                </button>
               </div>
             </div>
           ))}
