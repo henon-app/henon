@@ -875,6 +875,16 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
 
+  // ---- Bible state ----
+  const [bibleContent, setBibleContent] = useState(BIBLE_VERSES);
+  const [showBibleUpload, setShowBibleUpload] = useState(false);
+  const [bibleCategory, setBibleCategory] = useState('all');
+  const [bibleForm, setBibleForm] = useState({ title: '', content: '', reference: '', category: 'verse' });
+  const [selectedBibleFile, setSelectedBibleFile] = useState(null);
+  const [bibleUploading, setBibleUploading] = useState(false);
+  const [bibleUploadProgress, setBibleUploadProgress] = useState(0);
+  const bibleFileRef = useRef(null);
+
   // ---- Fasting & Saints state ----
   const [fastingDays, setFastingDays] = useState(FASTING_DAYS);
   const [saints, setSaints] = useState(SAINTS);
@@ -1070,6 +1080,109 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       triggerToast('Story አልተጫነም: ' + err.message);
     }
     if (storyInputRef.current) storyInputRef.current.value = '';
+  };
+
+  // ---- Bible ከ Supabase ----
+  const fetchBibleContent = useCallback(async () => {
+    const { data } = await supabase
+      .from('bible_content')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+    if (data && data.length > 0) setBibleContent(data);
+  }, []);
+
+  useEffect(() => { fetchBibleContent(); }, [fetchBibleContent]);
+
+  // ---- Bible upload ----
+  const handleBibleUpload = async () => {
+    if (!bibleForm.title.trim()) return triggerToast('ርዕስ ያስፈልጋል!');
+    if (!bibleForm.content.trim() && !selectedBibleFile) return triggerToast('ይዘት ወይም ፋይል ያስፈልጋል!');
+
+    setBibleUploading(true);
+    setBibleUploadProgress(0);
+
+    const interval = setInterval(() => {
+      setBibleUploadProgress(prev => {
+        if (prev >= 85) { clearInterval(interval); return 85; }
+        return prev + Math.floor(Math.random() * 15 + 5);
+      });
+    }, 350);
+
+    let fileUrl = null;
+    let fileType = 'text';
+    let fileSizeMB = null;
+
+    // File upload (PDF or Audio)
+    if (selectedBibleFile?.file) {
+      try {
+        const ext = selectedBibleFile.file.name.split('.').pop().toLowerCase();
+        fileType = ext === 'pdf' ? 'pdf' : ['mp3','m4a','wav','ogg'].includes(ext) ? 'audio' : 'other';
+        fileSizeMB = (selectedBibleFile.file.size / (1024 * 1024)).toFixed(1);
+        const fileName = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext;
+        const { error: upErr } = await supabase.storage
+          .from('bible-files')
+          .upload('files/' + fileName, selectedBibleFile.file, { cacheControl: '3600', upsert: false });
+        if (upErr) throw upErr;
+        const { data } = supabase.storage.from('bible-files').getPublicUrl('files/' + fileName);
+        fileUrl = data.publicUrl;
+      } catch (err) {
+        clearInterval(interval);
+        setBibleUploading(false);
+        setBibleUploadProgress(0);
+        return triggerToast('ፋይል አልተጫነም: ' + err.message);
+      }
+    }
+
+    setBibleUploadProgress(95);
+
+    const { error } = await supabase.from('bible_content').insert([{
+      title: bibleForm.title,
+      content: bibleForm.content,
+      reference: bibleForm.reference,
+      category: bibleForm.category,
+      file_url: fileUrl,
+      file_type: fileUrl ? fileType : 'text',
+      file_size: fileSizeMB,
+      user_id: user.id,
+      user_name: user.name,
+      user_initials: user.name.slice(0, 2).toUpperCase(),
+      user_color: '#B8860B',
+    }]);
+
+    clearInterval(interval);
+    setBibleUploadProgress(100);
+    setBibleUploading(false);
+    setBibleUploadProgress(0);
+
+    if (error) { triggerToast('ስህተት: ' + error.message); }
+    else {
+      triggerToast('ተጨምሯል! ✅');
+      setBibleForm({ title: '', content: '', reference: '', category: 'verse' });
+      setSelectedBibleFile(null);
+      setShowBibleUpload(false);
+      fetchBibleContent();
+    }
+  };
+
+  // ---- Bible download ----
+  const handleBibleDownload = async (item) => {
+    if (!item.file_url) return triggerToast('ለማውረድ ፋይል የለም!');
+    try {
+      const res = await fetch(item.file_url);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = item.title + '.' + (item.file_type === 'pdf' ? 'pdf' : 'mp3');
+      a.click();
+      URL.revokeObjectURL(url);
+      // increment downloads
+      await supabase.from('bible_content')
+        .update({ downloads: (item.downloads || 0) + 1 })
+        .eq('id', item.id);
+      triggerToast('⬇️ ' + item.title + ' ወረደ!');
+    } catch { triggerToast('Download አልተቻለም!'); }
   };
 
   // ---- Fasting ከ Supabase ----
@@ -1950,35 +2063,216 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   };
 
   // ===================== RENDER BIBLE =====================
-  const renderBible = () => (
-    <div style={{ paddingBottom: '20px' }}>
-      <div style={{ background: 'linear-gradient(135deg,#1A1508,#3d2b01)', padding: '20px', borderRadius: '16px', marginBottom: '16px', border: '1px solid #B8860B55', textAlign: 'center' }}>
-        <CrossIcon size={28} color="#B8860B" />
-        <h2 style={{ color: '#B8860B', margin: '8px 0', fontSize: '18px' }}>{t('daily')}</h2>
-        <p style={{ fontSize: '15px', lineHeight: '1.6', fontStyle: 'italic', margin: '0 0 8px', color: '#F0E6C8' }}>"ቃልህ ለእግሬ መብራት ለመንገዴም ብርሃን ነው።"</p>
-        <span style={{ fontSize: '12px', color: '#B8860B' }}>መዝሙር ፻፲፱:፻፭</span>
-      </div>
-      {BIBLE_VERSES.map(v => (
-        <div key={v.id} style={{ padding: '16px', backgroundColor: '#1A1508', borderRadius: '14px', marginBottom: '12px', borderLeft: '4px solid #B8860B' }}>
-          <p style={{ fontStyle: 'italic', fontSize: '15px', lineHeight: '1.7', marginBottom: '10px', color: '#F0E6C8' }}>"{v.text}"</p>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#B8860B', fontWeight: '700', fontSize: '13px' }}>{v.ref}</span>
-            <div style={{ display: 'flex', gap: '4px' }}>
-              {[
-                { Icon: Copy, action: () => triggerToast(t('copied')) },
-                { Icon: BookMarked, action: () => { setSavedVerses([...savedVerses, v]); triggerToast(t('saved')); } },
-                { Icon: Share2, action: () => triggerToast(t('shared')) },
-              ].map(({ Icon: Ic, action }, i) => (
-                <button key={i} onClick={action} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px', display: 'flex' }}>
-                  <IC size={17} color="#B8860B"><Ic /></IC>
+  const renderBible = () => {
+    const categories = [
+      { key: 'all', label: 'ሁሉም' },
+      { key: 'verse', label: '📖 ጥቅስ' },
+      { key: 'pdf', label: '📄 PDF' },
+      { key: 'audio', label: '🎵 Audio' },
+      { key: 'book', label: '📚 መጽሐፍ' },
+    ];
+    const filtered = bibleCategory === 'all'
+      ? bibleContent
+      : bibleContent.filter(b => b.category === bibleCategory || b.file_type === bibleCategory);
+
+    return (
+      <div style={{ paddingBottom: '80px' }}>
+        {/* Header */}
+        <div style={{ background: 'linear-gradient(135deg,#1A1508,#3d2b01)', padding: '20px', borderRadius: '16px', marginBottom: '16px', border: '1px solid #B8860B55', textAlign: 'center' }}>
+          <CrossIcon size={28} color="#B8860B" />
+          <h2 style={{ color: '#B8860B', margin: '8px 0', fontSize: '18px' }}>{t('bible')}</h2>
+          <p style={{ fontSize: '13px', lineHeight: '1.6', fontStyle: 'italic', margin: '0 0 12px', color: '#F0E6C8' }}>"ቃልህ ለእግሬ መብራት ለመንገዴም ብርሃን ነው።" — መዝ ፻፲፱:፻፭</p>
+          <button onClick={() => setShowBibleUpload(true)}
+            style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '20px', padding: '8px 20px', fontWeight: '700', cursor: 'pointer', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <IC size={14} color="#fff"><Plus /></IC> ጥቅስ / ፋይል ጨምር
+          </button>
+        </div>
+
+        {/* Category filter */}
+        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', marginBottom: '14px', scrollbarWidth: 'none' }}>
+          {categories.map(cat => (
+            <button key={cat.key} onClick={() => setBibleCategory(cat.key)}
+              style={{ flexShrink: 0, background: bibleCategory === cat.key ? '#B8860B' : '#1A1508', border: `1px solid ${bibleCategory === cat.key ? '#B8860B' : '#2a2010'}`, borderRadius: '20px', padding: '6px 14px', color: bibleCategory === cat.key ? '#000' : '#888', cursor: 'pointer', fontSize: '12px', fontWeight: bibleCategory === cat.key ? '700' : '400', fontFamily: 'inherit' }}>
+              {cat.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Upload Modal */}
+        {showBibleUpload && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 9000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <div style={{ background: '#1A1508', borderRadius: '24px 24px 0 0', padding: '24px', width: '100%', maxWidth: '430px', maxHeight: '90vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, color: '#B8860B', fontSize: '16px' }}>📖 ጥቅስ / ፋይል ጨምር</h3>
+                <button onClick={() => { setShowBibleUpload(false); setBibleForm({ title: '', content: '', reference: '', category: 'verse' }); setSelectedBibleFile(null); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <X size={20} color="#888" />
                 </button>
-              ))}
+              </div>
+
+              {/* Category select */}
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', flexWrap: 'wrap' }}>
+                {[
+                  { key: 'verse', label: '📖 ጥቅስ' },
+                  { key: 'pdf', label: '📄 PDF' },
+                  { key: 'audio', label: '🎵 Audio' },
+                  { key: 'book', label: '📚 መጽሐፍ' },
+                ].map(cat => (
+                  <button key={cat.key} onClick={() => setBibleForm({...bibleForm, category: cat.key})}
+                    style={{ background: bibleForm.category === cat.key ? '#B8860B' : '#0D0A06', border: '1px solid #2a2010', borderRadius: '20px', padding: '6px 12px', color: bibleForm.category === cat.key ? '#000' : '#888', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit' }}>
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Title */}
+              <input value={bibleForm.title} onChange={e => setBibleForm({...bibleForm, title: e.target.value})}
+                placeholder="ርዕስ..."
+                style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '10px', boxSizing: 'border-box' }} />
+
+              {/* Reference */}
+              <input value={bibleForm.reference} onChange={e => setBibleForm({...bibleForm, reference: e.target.value})}
+                placeholder="ምንጭ (ለምሳሌ: ዮሐ ፫:፲፮)"
+                style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '10px', boxSizing: 'border-box' }} />
+
+              {/* Content */}
+              <textarea value={bibleForm.content} onChange={e => setBibleForm({...bibleForm, content: e.target.value})}
+                placeholder="ጽሑፍ ወይም መግለጫ..."
+                style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '10px', minHeight: '80px', resize: 'none', boxSizing: 'border-box' }} />
+
+              {/* File upload */}
+              <div onClick={() => bibleFileRef.current?.click()}
+                style={{ width: '100%', background: '#0D0A06', border: `2px dashed ${selectedBibleFile ? '#B8860B' : '#2a2010'}`, borderRadius: '12px', padding: '16px', textAlign: 'center', cursor: 'pointer', marginBottom: '14px', boxSizing: 'border-box' }}>
+                <IC size={24} color={selectedBibleFile ? '#B8860B' : '#444'}><UploadCloud /></IC>
+                <div style={{ fontSize: '12px', color: selectedBibleFile ? '#B8860B' : '#555', marginTop: '6px' }}>
+                  {selectedBibleFile ? '✅ ' + selectedBibleFile.name : 'PDF፣ Audio ወይም ሌላ ፋይል ምረጥ (አማራጭ)'}
+                </div>
+                {selectedBibleFile && (
+                  <div style={{ fontSize: '10px', color: '#555', marginTop: '3px' }}>
+                    {(selectedBibleFile.file.size / (1024*1024)).toFixed(1)} MB
+                  </div>
+                )}
+              </div>
+              <input ref={bibleFileRef} type="file" accept=".pdf,audio/*,.epub,.doc,.docx" style={{ display: 'none' }}
+                onChange={e => { const f = e.target.files[0]; if (f) setSelectedBibleFile({ file: f, name: f.name }); }} />
+
+              {/* Progress */}
+              {bibleUploading && (
+                <div style={{ marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '12px', color: '#B8860B' }}>እየተጫነ...</span>
+                    <span style={{ fontSize: '12px', color: '#B8860B', fontWeight: '700' }}>{bibleUploadProgress}%</span>
+                  </div>
+                  <div style={{ width: '100%', height: '6px', background: '#2a2010', borderRadius: '4px', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', width: bibleUploadProgress + '%', background: 'linear-gradient(90deg,#B8860B,#FFD700)', borderRadius: '4px', transition: 'width 0.3s' }} />
+                  </div>
+                </div>
+              )}
+
+              <button onClick={handleBibleUpload} disabled={bibleUploading}
+                style={{ width: '100%', background: bibleUploading ? '#555' : 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '14px', padding: '14px', color: '#000', fontWeight: '800', fontSize: '15px', cursor: bibleUploading ? 'not-allowed' : 'pointer' }}>
+                {bibleUploading ? bibleUploadProgress + '%...' : 'ጨምር ✅'}
+              </button>
             </div>
           </div>
-        </div>
-      ))}
-    </div>
-  );
+        )}
+
+        {/* Content list */}
+        {filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '40px 20px', color: '#444' }}>
+            <CrossIcon size={48} color="#2a2010" />
+            <p style={{ marginTop: '12px', fontSize: '14px' }}>ይዘት እስካሁን የለም — ይጨምሩ! 📖</p>
+          </div>
+        ) : (
+          filtered.map((item, i) => (
+            <div key={item.id || i} style={{ backgroundColor: '#1A1508', borderRadius: '14px', marginBottom: '12px', border: '1px solid #2a2010', overflow: 'hidden' }}>
+              {/* Card header */}
+              <div style={{ padding: '14px 16px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ flex: 1 }}>
+                  {/* Type badge */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                    <span style={{ background: '#B8860B22', border: '1px solid #B8860B44', borderRadius: '8px', padding: '2px 8px', fontSize: '10px', color: '#B8860B' }}>
+                      {item.file_type === 'pdf' ? '📄 PDF' : item.file_type === 'audio' ? '🎵 Audio' : item.category === 'book' ? '📚 መጽሐፍ' : '📖 ጥቅስ'}
+                    </span>
+                    {item.file_size && (
+                      <span style={{ fontSize: '10px', color: '#555' }}>{item.file_size} MB</span>
+                    )}
+                  </div>
+                  <div style={{ fontWeight: '700', fontSize: '14px', color: '#F0E6C8', marginBottom: '4px' }}>{item.title}</div>
+                  {item.reference && <div style={{ fontSize: '12px', color: '#B8860B' }}>{item.reference}</div>}
+                </div>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  {/* Copy */}
+                  {item.content && (
+                    <button onClick={() => { navigator.clipboard?.writeText(item.content); triggerToast(t('copied')); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px' }}>
+                      <IC size={16} color="#666"><Copy /></IC>
+                    </button>
+                  )}
+                  {/* Save */}
+                  <button onClick={() => { setSavedVerses(prev => [...prev, item]); triggerToast(t('saved')); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px' }}>
+                    <IC size={16} color="#666"><BookMarked /></IC>
+                  </button>
+                  {/* Share */}
+                  <button onClick={() => { navigator.share?.({ title: item.title, text: item.content || item.title, url: window.location.href }); }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px' }}>
+                    <IC size={16} color="#666"><Share2 /></IC>
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              {item.content && (
+                <div style={{ padding: '0 16px 10px' }}>
+                  <p style={{ fontStyle: item.category === 'verse' ? 'italic' : 'normal', fontSize: '14px', lineHeight: '1.7', color: '#ddd', margin: 0 }}>
+                    {item.category === 'verse' ? '"' + item.content + '"' : item.content}
+                  </p>
+                </div>
+              )}
+
+              {/* Audio player */}
+              {item.file_url && item.file_type === 'audio' && (
+                <div style={{ padding: '0 16px 12px' }}>
+                  <audio controls src={item.file_url} style={{ width: '100%', height: '36px' }} />
+                </div>
+              )}
+
+              {/* Download button for PDF/book */}
+              {item.file_url && item.file_type !== 'audio' && (
+                <div style={{ padding: '0 16px 14px' }}>
+                  <button onClick={() => handleBibleDownload(item)}
+                    style={{ width: '100%', background: '#0D0A06', border: '1px solid #B8860B44', borderRadius: '10px', padding: '10px', color: '#B8860B', cursor: 'pointer', fontSize: '13px', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontFamily: 'inherit' }}>
+                    <IC size={16} color="#B8860B"><Download /></IC>
+                    Download — {item.file_type?.toUpperCase()}
+                    {item.downloads > 0 && <span style={{ fontSize: '10px', color: '#555', marginLeft: '4px' }}>({item.downloads} ጊዜ)</span>}
+                  </button>
+                </div>
+              )}
+
+              {/* Footer */}
+              <div style={{ padding: '8px 16px', borderTop: '1px solid #2a2010', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Avatar initials={item.user_initials || 'ሄ'} color={item.user_color || '#B8860B'} size={22} fontSize={9} />
+                  <span style={{ fontSize: '11px', color: '#666' }}>{item.user_name || 'ሄኖን'}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  {item.views > 0 && (
+                    <span style={{ fontSize: '10px', color: '#555', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                      <IC size={10} color="#555"><Eye /></IC> {item.views}
+                    </span>
+                  )}
+                  <span style={{ fontSize: '10px', color: '#444' }}>
+                    {new Date(item.created_at).toLocaleDateString('am-ET')}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    );
+  };
 
   // ===================== RENDER CALENDAR =====================
   const renderCalendar = () => (
