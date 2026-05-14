@@ -594,6 +594,34 @@ const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentP
     setReactionLoading(false);
   };
 
+  // ---- Share handler ----
+  const handleShare = async () => {
+    const postUrl = window.location.origin + '?post=' + p.id;
+    const shareText = p.text ? p.text.slice(0, 100) : 'ሄኖን ☦️';
+
+    // Mobile native share
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'ሄኖን — ' + (p.author || ''),
+          text: shareText,
+          url: postUrl,
+        });
+        return;
+      } catch (err) {
+        if (err.name === 'AbortError') return; // user cancelled
+      }
+    }
+
+    // Fallback — copy to clipboard
+    try {
+      await navigator.clipboard.writeText(postUrl);
+      triggerToast('🔗 ሊንክ ተቀድቷል!');
+    } catch {
+      triggerToast('🔗 ' + postUrl);
+    }
+  };
+
   // ---- Supabase: ኮሜንቶችን ማምጣት ----
   const fetchComments = useCallback(async () => {
     const { data, error } = await supabase
@@ -711,7 +739,7 @@ const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentP
           { Icon: Heart, label: likeCount, active: userLiked, activeColor: '#FF4500', action: handleLike },
           { Icon: HandHeart, label: prayerCount, active: userPrayed, activeColor: '#4facfe', action: handlePrayer },
           { Icon: MessageCircle, label: comments.length, active: isCommentOpen, activeColor: '#B8860B', action: () => setOpenCommentPostId(isCommentOpen ? null : p.id) }, // ✅ real-time count
-          { Icon: Share2, label: t('share'), action: () => triggerToast(t('shared')) },
+          { Icon: Share2, label: t('share'), action: handleShare },
         ].map(({ Icon: Ic, label, active, activeColor, action }, i) => (
           <button key={i} onClick={action} style={{ background: 'none', border: 'none', color: active ? activeColor : '#666', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', padding: '4px 8px' }}>
             <IC size={18} color={active ? activeColor : '#666'}><Ic /></IC>
@@ -1434,7 +1462,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
             { Icon: HandHeart, label: video.prayers, action: () => triggerToast(t('prayer')) },
             { Icon: Download, label: t('downloaded'), action: () => triggerToast(t('downloaded')) },
             { Icon: BookMarked, label: t('saved'), action: () => triggerToast(t('saved')) },
-            { Icon: Share2, label: t('share'), action: () => triggerToast(t('shared')) },
+            { Icon: Share2, label: t('share'), action: handleShare },
           ].map(({ Icon: Ic, label, action }, i) => (
             <button key={i} onClick={action} style={{ background: '#1A1508', border: '1px solid #2a2010', borderRadius: '20px', padding: '7px 14px', color: '#888', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', whiteSpace: 'nowrap', flexShrink: 0 }}>
               <IC size={14} color="#888"><Ic /></IC> {label}
