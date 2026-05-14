@@ -800,6 +800,14 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
 
+  // ---- Story state ----
+  const [stories, setStories] = useState([]);
+  const [activeStory, setActiveStory] = useState(null); // { index, story }
+  const [storyUploading, setStoryUploading] = useState(false);
+  const [storyProgress, setStoryProgress] = useState(0);
+  const storyInputRef = useRef(null);
+  const storyTimerRef = useRef(null);
+
   // ---- Video upload state ----
   const [selectedVideo, setSelectedVideo] = useState(null);
   const [videoUploading, setVideoUploading] = useState(false);
@@ -896,6 +904,92 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
     return data.publicUrl;
   };
   // ========================================================================
+
+  // ---- Stories ከ Supabase ማምጣት ----
+  const fetchStories = useCallback(async () => {
+    const { data } = await supabase
+      .from('stories')
+      .select('*')
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false });
+    if (data) setStories(data);
+  }, []);
+
+  useEffect(() => { fetchStories(); }, [fetchStories]);
+
+  // ---- Story upload ----
+  const handleStoryPick = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const isVideo = file.type.startsWith('video/');
+    setStoryUploading(true);
+    setStoryProgress(0);
+
+    // Progress simulation
+    const interval = setInterval(() => {
+      setStoryProgress(prev => {
+        if (prev >= 90) { clearInterval(interval); return 90; }
+        return prev + Math.floor(Math.random() * 20 + 5);
+      });
+    }, 300);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + fileExt;
+      const { error: upErr } = await supabase.storage
+        .from('stories')
+        .upload('media/' + fileName, file, { cacheControl: '3600', upsert: false });
+      if (upErr) throw upErr;
+
+      const { data: urlData } = supabase.storage
+        .from('stories').getPublicUrl('media/' + fileName);
+
+      await supabase.from('stories').insert([{
+        user_id: user.id,
+        user_name: user.name,
+        user_initials: user.name.slice(0, 2).toUpperCase(),
+        user_color: '#B8860B',
+        media_url: urlData.publicUrl,
+        media_type: isVideo ? 'video' : 'photo',
+        caption: '',
+      }]);
+
+      clearInterval(interval);
+      setStoryProgress(100);
+      setTimeout(() => {
+        setStoryUploading(false);
+        setStoryProgress(0);
+        fetchStories();
+        triggerToast('Story ተጋርቷል! ✅');
+      }, 500);
+    } catch (err) {
+      clearInterval(interval);
+      setStoryUploading(false);
+      setStoryProgress(0);
+      triggerToast('Story አልተጫነም: ' + err.message);
+    }
+    if (storyInputRef.current) storyInputRef.current.value = '';
+  };
+
+  // ---- Story viewer auto-advance ----
+  const openStory = (index) => {
+    setActiveStory(index);
+    setStoryProgress(0);
+    clearTimeout(storyTimerRef.current);
+    storyTimerRef.current = setTimeout(() => {
+      if (index < stories.length - 1) {
+        openStory(index + 1);
+      } else {
+        setActiveStory(null);
+      }
+    }, 5000);
+  };
+
+  const closeStory = () => {
+    clearTimeout(storyTimerRef.current);
+    setActiveStory(null);
+    setStoryProgress(0);
+  };
 
   const handleVideoPick = (e) => {
     const file = e.target.files[0];
@@ -1013,31 +1107,123 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   // ===================== RENDER HOME =====================
   const renderHome = () => (
     <div style={{ paddingBottom: '20px' }}>
-      {/* Stories */}
+      {/* Stories bar */}
       <div style={{ overflowX: 'auto', overflowY: 'hidden', paddingBottom: '12px', marginBottom: '16px', scrollbarWidth: 'none' }}>
         <div style={{ display: 'flex', gap: '12px', width: 'max-content' }}>
-          <div style={{ flexShrink: 0, textAlign: 'center', cursor: 'pointer' }} onClick={() => setActiveTab('upload')}>
-            <div style={{ width: '58px', height: '58px', borderRadius: '50%', background: 'linear-gradient(135deg,#B8860B,#FFD700)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <IC size={24} color="#000"><Plus /></IC>
-            </div>
-            <div style={{ fontSize: '10px', color: '#B8860B', marginTop: '5px' }}>{t('addStory')}</div>
-          </div>
-          {[
-            { initials: 'ደዘ', color: '#B8860B', n: 'ደ/ዘማርያም' },
-            { initials: 'ዘም', color: '#4facfe', n: 'ምርትነሽ' },
-            { initials: 'ዲኃ', color: '#fa709a', n: 'ዲ/ኃይሉ' },
-            { initials: 'አቅ', color: '#43e97b', n: 'አቡነ ቅ.' },
-            { initials: 'ጸቡ', color: '#f093fb', n: 'ጸሎት' },
-          ].map((s, i) => (
-            <div key={i} style={{ flexShrink: 0, textAlign: 'center', cursor: 'pointer' }}>
-              <div style={{ padding: '2px', borderRadius: '50%', background: 'linear-gradient(135deg,#B8860B,#FFD700)' }}>
-                <Avatar initials={s.initials} color={s.color} size={54} />
+
+          {/* + Add story button */}
+          <div style={{ flexShrink: 0, textAlign: 'center', cursor: 'pointer' }}
+            onClick={() => storyInputRef.current && storyInputRef.current.click()}>
+            <div style={{ position: 'relative', width: '58px', height: '58px' }}>
+              <div style={{ width: '58px', height: '58px', borderRadius: '50%', background: 'linear-gradient(135deg,#B8860B,#FFD700)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {storyUploading
+                  ? <span style={{ color: '#000', fontWeight: '800', fontSize: '12px' }}>{storyProgress}%</span>
+                  : <IC size={24} color="#000"><Plus /></IC>}
               </div>
-              <div style={{ fontSize: '10px', color: '#888', marginTop: '5px', width: '64px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.n}</div>
+              {storyUploading && (
+                <svg style={{ position: 'absolute', top: 0, left: 0 }} width="58" height="58">
+                  <circle cx="29" cy="29" r="26" fill="none" stroke="#00000033" strokeWidth="4" />
+                  <circle cx="29" cy="29" r="26" fill="none" stroke="#000" strokeWidth="4"
+                    strokeDasharray={`${2 * Math.PI * 26}`}
+                    strokeDashoffset={`${2 * Math.PI * 26 * (1 - storyProgress / 100)}`}
+                    strokeLinecap="round"
+                    style={{ transform: 'rotate(-90deg)', transformOrigin: '29px 29px', transition: 'stroke-dashoffset 0.3s' }}
+                  />
+                </svg>
+              )}
+            </div>
+            <div style={{ fontSize: '10px', color: '#B8860B', marginTop: '5px' }}>
+              {storyUploading ? 'እየጫነ...' : t('addStory')}
+            </div>
+          </div>
+          <input ref={storyInputRef} type="file" accept="image/*,video/*" onChange={handleStoryPick} style={{ display: 'none' }} />
+
+          {/* My story (if exists) */}
+          {stories.filter(s => s.user_id === user.id).length > 0 && (
+            <div style={{ flexShrink: 0, textAlign: 'center', cursor: 'pointer' }}
+              onClick={() => openStory(stories.findIndex(s => s.user_id === user.id))}>
+              <div style={{ padding: '2px', borderRadius: '50%', background: 'linear-gradient(135deg,#B8860B,#FFD700)' }}>
+                <Avatar initials={userInitials} color="#B8860B" size={54} />
+              </div>
+              <div style={{ fontSize: '10px', color: '#B8860B', marginTop: '5px' }}>እኔ</div>
+            </div>
+          )}
+
+          {/* Other users stories */}
+          {stories.filter(s => s.user_id !== user.id).map((s, i) => (
+            <div key={s.id} style={{ flexShrink: 0, textAlign: 'center', cursor: 'pointer' }}
+              onClick={() => openStory(stories.indexOf(s))}>
+              <div style={{ padding: '2px', borderRadius: '50%', background: 'linear-gradient(135deg,#B8860B,#FFD700)' }}>
+                <Avatar initials={s.user_initials || 'U'} color={s.user_color || '#B8860B'} size={54} />
+              </div>
+              <div style={{ fontSize: '10px', color: '#888', marginTop: '5px', width: '64px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {s.user_name}
+              </div>
             </div>
           ))}
         </div>
       </div>
+
+      {/* Story Viewer — Full Screen */}
+      {activeStory !== null && stories[activeStory] && (
+        <div style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 9000, display: 'flex', flexDirection: 'column' }}>
+          {/* Progress bars */}
+          <div style={{ display: 'flex', gap: '3px', padding: '12px 12px 0' }}>
+            {stories.map((_, i) => (
+              <div key={i} style={{ flex: 1, height: '3px', borderRadius: '2px', background: i < activeStory ? '#fff' : i === activeStory ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
+                {i === activeStory && (
+                  <div style={{ height: '100%', background: '#fff', borderRadius: '2px', animation: 'storyProgress 5s linear forwards' }} />
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px' }}>
+            <Avatar initials={stories[activeStory].user_initials || 'U'} color={stories[activeStory].user_color || '#B8860B'} size={36} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: '700', fontSize: '13px', color: '#fff' }}>{stories[activeStory].user_name}</div>
+              <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>
+                {new Date(stories[activeStory].created_at).toLocaleTimeString('am-ET', { hour: '2-digit', minute: '2-digit' })}
+              </div>
+            </div>
+            <button onClick={closeStory} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px' }}>
+              <X size={24} color="#fff" />
+            </button>
+          </div>
+
+          {/* Media */}
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}
+            onClick={(e) => {
+              const x = e.clientX;
+              const w = window.innerWidth;
+              if (x < w / 2) {
+                if (activeStory > 0) openStory(activeStory - 1);
+              } else {
+                if (activeStory < stories.length - 1) openStory(activeStory + 1);
+                else closeStory();
+              }
+            }}>
+            {stories[activeStory].media_type === 'video'
+              ? <video src={stories[activeStory].media_url} autoPlay loop style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              : <img src={stories[activeStory].media_url} alt="story" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            }
+            {/* Left/Right tap hints */}
+            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '40%' }} />
+            <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: '40%' }} />
+          </div>
+
+          {/* Caption */}
+          {stories[activeStory].caption && (
+            <div style={{ padding: '12px 16px', background: 'linear-gradient(transparent, rgba(0,0,0,0.8))' }}>
+              <p style={{ margin: 0, color: '#fff', fontSize: '14px' }}>{stories[activeStory].caption}</p>
+            </div>
+          )}
+        </div>
+      )}
+      <style>{`
+        @keyframes storyProgress { from { width: 0%; } to { width: 100%; } }
+      `}</style>
 
       {/* Post composer */}
       <div style={{ backgroundColor: '#1A1508', borderRadius: '16px', padding: '14px', marginBottom: '16px', border: '1px solid #2a2010' }}>
