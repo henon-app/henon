@@ -2869,9 +2869,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 
       {/* Info note */}
       <p style={{ textAlign: 'center', fontSize: '11px', color: '#444', lineHeight: '1.6' }}>
-        አዲስ ሂሳብ ሲጨምሩ — አሁን ያለው ሂሳብ ይቀመጣል።{'
-'}
-        ማንኛውም ጊዜ መቀያየር ይችላሉ።
+        አዲስ ሂሳብ ሲጨምሩ አሁን ያለው ሂሳብ ይቀመጣል። ማንኛውም ጊዜ መቀያየር ይችላሉ።
       </p>
     </div>
   );
