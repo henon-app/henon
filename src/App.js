@@ -1100,20 +1100,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
     }
   };
 
-  // ---- Play song ----
-  const playSong = (song) => {
-    if (currentSong?.id === song.id) {
-      setSongPlaying(!songPlaying);
-      if (audioRef.current) {
-        songPlaying ? audioRef.current.pause() : audioRef.current.play();
-      }
-    } else {
-      setCurrentSong(song);
-      setSongPlaying(true);
-      setShowPlayer(true);
-      triggerToast(t('nowPlaying') + ' ' + song.title);
-    }
-  };
+
 
   // ---- Audio play when currentSong changes ----
   useEffect(() => {
