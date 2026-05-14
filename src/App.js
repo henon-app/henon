@@ -217,17 +217,8 @@ const CrossIcon = ({ size = 18, color = '#B8860B' }) => (
   <svg width={size} height={size} viewBox="0 0 100 120" fill="none">
     {/* ዋና አቀባዊ */}
     <rect x="45" y="0" width="10" height="120" rx="3" fill={color}/>
-    {/* ላይኛው አግድም */}
-    <rect x="10" y="18" width="80" height="10" rx="3" fill={color}/>
-    {/* መካከለኛ አግድም */}
-    <rect x="22" y="42" width="56" height="8" rx="3" fill={color}/>
-    {/* ታችኛው አግድም — ኢትዮጵያዊ */}
-    <rect x="30" y="65" width="40" height="7" rx="3" fill={color}/>
-    {/* 4 ጥግ ጌጥ */}
-    <rect x="10" y="13" width="10" height="10" rx="2" fill={color}/>
-    <rect x="80" y="13" width="10" height="10" rx="2" fill={color}/>
-    <rect x="10" y="25" width="10" height="10" rx="2" fill={color}/>
-    <rect x="80" y="25" width="10" height="10" rx="2" fill={color}/>
+    {/* አንድ አግድም ብቻ */}
+    <rect x="10" y="30" width="80" height="10" rx="3" fill={color}/>
   </svg>
 );
 
