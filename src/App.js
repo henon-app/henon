@@ -828,6 +828,20 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
 
+  // ---- Songs state ----
+  const [songs, setSongs] = useState([]);
+  const [currentSong, setCurrentSong] = useState(null);
+  const [songPlaying, setSongPlaying] = useState(false);
+  const [showSongUpload, setShowSongUpload] = useState(false);
+  const [songForm, setSongForm] = useState({ title: '', artist: '' });
+  const [selectedAudio, setSelectedAudio] = useState(null);
+  const [selectedCover, setSelectedCover] = useState(null);
+  const [songUploading, setSongUploading] = useState(false);
+  const [songUploadProgress, setSongUploadProgress] = useState(0);
+  const audioRef = useRef(null);
+  const audioInputRef = useRef(null);
+  const coverInputRef = useRef(null);
+
   // ---- Story state ----
   const [stories, setStories] = useState([]);
   const [activeStory, setActiveStory] = useState(null); // { index, story }
@@ -998,6 +1012,117 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
     }
     if (storyInputRef.current) storyInputRef.current.value = '';
   };
+
+  // ---- Songs ከ Supabase ----
+  const fetchSongs = useCallback(async () => {
+    const { data } = await supabase
+      .from('songs')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (data) setSongs(data);
+  }, []);
+
+  useEffect(() => { fetchSongs(); }, [fetchSongs]);
+
+  // ---- Audio upload to Storage ----
+  const uploadAudioFile = async (file, bucket, folder) => {
+    const ext = file.name.split('.').pop();
+    const fileName = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext;
+    const filePath = folder + '/' + fileName;
+    const { error } = await supabase.storage
+      .from(bucket).upload(filePath, file, { cacheControl: '3600', upsert: false });
+    if (error) throw error;
+    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
+    return data.publicUrl;
+  };
+
+  // ---- Song upload ----
+  const handleSongUpload = async () => {
+    if (!songForm.title.trim()) return triggerToast('ዝማሬ ርዕስ ያስፈልጋል!');
+    if (!songForm.artist.trim()) return triggerToast('ዘማሪ ስም ያስፈልጋል!');
+    if (!selectedAudio?.file) return triggerToast('Audio ፋይል ያስፈልጋል!');
+
+    setSongUploading(true);
+    setSongUploadProgress(0);
+
+    const interval = setInterval(() => {
+      setSongUploadProgress(prev => {
+        if (prev >= 85) { clearInterval(interval); return 85; }
+        return prev + Math.floor(Math.random() * 12 + 3);
+      });
+    }, 400);
+
+    try {
+      // Audio upload
+      const audioUrl = await uploadAudioFile(selectedAudio.file, 'songs', 'audio');
+      setSongUploadProgress(90);
+
+      // Cover upload (optional)
+      let coverUrl = null;
+      if (selectedCover?.file) {
+        coverUrl = await uploadAudioFile(selectedCover.file, 'song-covers', 'covers');
+      }
+      setSongUploadProgress(95);
+
+      // Insert to DB
+      const { data, error } = await supabase.from('songs').insert([{
+        title: songForm.title,
+        artist: songForm.artist,
+        audio_url: audioUrl,
+        cover_url: coverUrl,
+        user_id: user.id,
+        user_name: user.name,
+        user_initials: user.name.slice(0, 2).toUpperCase(),
+        user_color: '#B8860B',
+      }]).select();
+
+      clearInterval(interval);
+      setSongUploadProgress(100);
+
+      if (error) throw error;
+
+      setTimeout(() => {
+        setSongUploading(false);
+        setSongUploadProgress(0);
+        setShowSongUpload(false);
+        setSongForm({ title: '', artist: '' });
+        setSelectedAudio(null);
+        setSelectedCover(null);
+        fetchSongs();
+        triggerToast('ዝማሬ ተጫኗል! 🎵');
+      }, 600);
+
+    } catch (err) {
+      clearInterval(interval);
+      setSongUploading(false);
+      setSongUploadProgress(0);
+      triggerToast('ዝማሬ አልተጫነም: ' + err.message);
+    }
+  };
+
+  // ---- Play song ----
+  const playSong = (song) => {
+    if (currentSong?.id === song.id) {
+      setSongPlaying(!songPlaying);
+      if (audioRef.current) {
+        songPlaying ? audioRef.current.pause() : audioRef.current.play();
+      }
+    } else {
+      setCurrentSong(song);
+      setSongPlaying(true);
+      setShowPlayer(true);
+      triggerToast(t('nowPlaying') + ' ' + song.title);
+    }
+  };
+
+  // ---- Audio play when currentSong changes ----
+  useEffect(() => {
+    if (audioRef.current && currentSong) {
+      audioRef.current.src = currentSong.audio_url;
+      audioRef.current.play().catch(() => {});
+      setSongPlaying(true);
+    }
+  }, [currentSong]);
 
   // ---- Story viewer auto-advance ----
   const openStory = (index) => {
@@ -1714,31 +1839,138 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 
   // ===================== RENDER PLAYLIST =====================
   const renderPlaylist = () => (
-    <div style={{ paddingBottom: '20px' }}>
-      <div style={{ background: 'linear-gradient(180deg,#B8860B 0%,#0D0A06 100%)', borderRadius: '18px', padding: '28px 16px', marginBottom: '20px', textAlign: 'center' }}>
-        <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', border: '2px solid rgba(255,255,255,0.2)' }}>
+    <div style={{ paddingBottom: '80px' }}>
+      {/* Header */}
+      <div style={{ background: 'linear-gradient(180deg,#B8860B 0%,#0D0A06 100%)', borderRadius: '18px', padding: '24px 16px', marginBottom: '16px', textAlign: 'center' }}>
+        <div style={{ width: '72px', height: '72px', borderRadius: '50%', background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', border: '2px solid rgba(255,255,255,0.2)' }}>
           <IC size={36} color="#fff"><Headphones /></IC>
         </div>
-        <h2 style={{ margin: '0 0 6px', fontSize: '18px' }}>{t('sacredMusic')}</h2>
-        <p style={{ opacity: 0.85, fontSize: '12px', margin: '0 auto 16px' }}>{t('renewSpirit')}</p>
-        <button onClick={() => playSong(PLAYLIST[0])} style={{ background: '#fff', color: '#000', border: 'none', borderRadius: '20px', padding: '10px 26px', fontWeight: '700', cursor: 'pointer', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-          <IC size={14} color="#000"><PlayCircle /></IC> {t('playAll')}
-        </button>
+        <h2 style={{ margin: '0 0 4px', fontSize: '18px' }}>{t('sacredMusic')}</h2>
+        <p style={{ opacity: 0.8, fontSize: '12px', margin: '0 0 14px' }}>{t('renewSpirit')}</p>
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+          {songs.length > 0 && (
+            <button onClick={() => playSong(songs[0])} style={{ background: '#fff', color: '#000', border: 'none', borderRadius: '20px', padding: '9px 20px', fontWeight: '700', cursor: 'pointer', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <IC size={14} color="#000"><PlayCircle /></IC> {t('playAll')}
+            </button>
+          )}
+          <button onClick={() => setShowSongUpload(true)} style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '20px', padding: '9px 20px', fontWeight: '700', cursor: 'pointer', fontSize: '13px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <IC size={14} color="#fff"><Plus /></IC> ዝማሬ ጨምር
+          </button>
+        </div>
       </div>
-      <div style={{ backgroundColor: '#1A1508', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2a2010' }}>
-        {PLAYLIST.map((song, i) => (
-          <div key={song.id} onClick={() => playSong(song)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: '1px solid #2a2010', cursor: 'pointer', background: currentTrack.id === song.id ? 'rgba(184,134,11,0.12)' : 'transparent' }}>
-            <div style={{ width: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {currentTrack.id === song.id ? <IC size={16} color="#B8860B"><Volume2 /></IC> : <span style={{ color: '#444', fontSize: '12px', fontWeight: '700' }}>{i + 1}</span>}
+
+      {/* Song Upload Modal */}
+      {showSongUpload && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ background: '#1A1508', borderRadius: '24px 24px 0 0', padding: '24px', width: '100%', maxWidth: '430px', border: '1px solid #2a2010' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <h3 style={{ margin: 0, color: '#B8860B', fontSize: '16px' }}>🎵 ዝማሬ ጨምር</h3>
+              <button onClick={() => { setShowSongUpload(false); setSongForm({ title: '', artist: '' }); setSelectedAudio(null); setSelectedCover(null); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={20} color="#888" />
+              </button>
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: '600', color: currentTrack.id === song.id ? '#B8860B' : '#F0E6C8', fontSize: '14px' }}>{song.title}</div>
-              <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>{song.artist}</div>
+
+            {/* Title */}
+            <input value={songForm.title} onChange={e => setSongForm({ ...songForm, title: e.target.value })}
+              placeholder="የዝማሬ ርዕስ..."
+              style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px 14px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '10px', boxSizing: 'border-box' }} />
+
+            {/* Artist */}
+            <input value={songForm.artist} onChange={e => setSongForm({ ...songForm, artist: e.target.value })}
+              placeholder="ዘማሪ ስም..."
+              style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px 14px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '10px', boxSizing: 'border-box' }} />
+
+            {/* Audio file */}
+            <div onClick={() => audioInputRef.current?.click()}
+              style={{ width: '100%', background: '#0D0A06', border: `2px dashed ${selectedAudio ? '#B8860B' : '#2a2010'}`, borderRadius: '12px', padding: '14px', textAlign: 'center', cursor: 'pointer', marginBottom: '10px', boxSizing: 'border-box' }}>
+              <IC size={22} color={selectedAudio ? '#B8860B' : '#444'}><Headphones /></IC>
+              <div style={{ fontSize: '13px', color: selectedAudio ? '#B8860B' : '#555', marginTop: '6px' }}>
+                {selectedAudio ? '✅ ' + selectedAudio.name : 'Audio ፋይል ምረጥ (mp3, m4a, wav)'}
+              </div>
             </div>
-            <span style={{ fontSize: '11px', color: '#555' }}>{song.duration}</span>
+            <input ref={audioInputRef} type="file" accept="audio/*" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files[0]; if (f) setSelectedAudio({ file: f, name: f.name }); }} />
+
+            {/* Cover photo */}
+            <div onClick={() => coverInputRef.current?.click()}
+              style={{ width: '100%', background: '#0D0A06', border: `2px dashed ${selectedCover ? '#B8860B' : '#2a2010'}`, borderRadius: '12px', padding: '14px', textAlign: 'center', cursor: 'pointer', marginBottom: '14px', boxSizing: 'border-box' }}>
+              <IC size={22} color={selectedCover ? '#B8860B' : '#444'}><Image /></IC>
+              <div style={{ fontSize: '13px', color: selectedCover ? '#B8860B' : '#555', marginTop: '6px' }}>
+                {selectedCover ? '✅ ' + selectedCover.name : 'Cover ፎቶ ምረጥ (አማራጭ)'}
+              </div>
+            </div>
+            <input ref={coverInputRef} type="file" accept="image/*" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files[0]; if (f) setSelectedCover({ file: f, name: f.name }); }} />
+
+            {/* Progress bar */}
+            {songUploading && (
+              <div style={{ marginBottom: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '12px', color: '#B8860B' }}>ዝማሬ እየተጫነ...</span>
+                  <span style={{ fontSize: '12px', color: '#B8860B', fontWeight: '700' }}>{songUploadProgress}%</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: '#2a2010', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: songUploadProgress + '%', background: 'linear-gradient(90deg,#B8860B,#FFD700)', borderRadius: '4px', transition: 'width 0.3s ease' }} />
+                </div>
+              </div>
+            )}
+
+            {/* Upload button */}
+            <button onClick={handleSongUpload} disabled={songUploading}
+              style={{ width: '100%', background: songUploading ? '#555' : 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '14px', padding: '14px', color: '#000', fontWeight: '800', fontSize: '15px', cursor: songUploading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <IC size={18} color="#000"><UploadCloud /></IC>
+              {songUploading ? songUploadProgress + '%...' : 'ዝማሬ ጫን'}
+            </button>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* Songs List */}
+      {songs.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#444' }}>
+          <IC size={48} color="#2a2010"><Headphones /></IC>
+          <p style={{ marginTop: '12px', fontSize: '14px' }}>ዝማሬ እስካሁን የለም — ይጨምሩ! 🎵</p>
+        </div>
+      ) : (
+        <div style={{ backgroundColor: '#1A1508', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2a2010' }}>
+          {songs.map((song, i) => (
+            <div key={song.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: i < songs.length - 1 ? '1px solid #2a2010' : 'none', cursor: 'pointer', background: currentSong?.id === song.id ? 'rgba(184,134,11,0.12)' : 'transparent' }}
+              onClick={() => playSong(song)}>
+              {/* Cover */}
+              <div style={{ width: '46px', height: '46px', borderRadius: '10px', background: song.cover_url ? 'none' : 'linear-gradient(135deg,#B8860B,#FFD700)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {song.cover_url
+                  ? <img src={song.cover_url} alt="cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <IC size={20} color="#000"><Headphones /></IC>}
+              </div>
+
+              {/* Info */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: '600', color: currentSong?.id === song.id ? '#B8860B' : '#F0E6C8', fontSize: '14px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{song.title}</div>
+                <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>{song.artist}</div>
+                <div style={{ fontSize: '10px', color: '#444', marginTop: '1px' }}>{song.user_name}</div>
+              </div>
+
+              {/* Play indicator */}
+              <div style={{ flexShrink: 0 }}>
+                {currentSong?.id === song.id && songPlaying
+                  ? <IC size={20} color="#B8860B"><Volume2 /></IC>
+                  : <IC size={20} color="#444"><PlayCircle /></IC>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Hidden audio element */}
+      <audio ref={audioRef}
+        src={currentSong?.audio_url || ''}
+        onEnded={() => {
+          const idx = songs.findIndex(s => s.id === currentSong?.id);
+          if (idx < songs.length - 1) playSong(songs[idx + 1]);
+          else setSongPlaying(false);
+        }}
+      />
     </div>
   );
 
@@ -2093,24 +2325,40 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           </main>
 
           {/* Mini Player */}
-          {showPlayer && (
+          {showPlayer && currentSong && (
             <div style={{ position: 'fixed', bottom: '68px', left: '10px', right: '10px', background: 'linear-gradient(135deg,#1f1a08,#0D0A06)', border: '1px solid #2a2010', borderRadius: '20px', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 200, boxShadow: '0 -8px 32px rgba(0,0,0,0.8)' }}>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                <div style={{ width: '42px', height: '42px', background: '#1A1508', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid #B8860B55' }}>
-                  <IC size={20} color="#B8860B"><Headphones /></IC>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '10px', overflow: 'hidden', flexShrink: 0, background: 'linear-gradient(135deg,#B8860B,#FFD700)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {currentSong.cover_url
+                    ? <img src={currentSong.cover_url} alt="cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : <IC size={20} color="#000"><Headphones /></IC>}
                 </div>
-                <div>
-                  <div style={{ fontWeight: '700', fontSize: '13px' }}>{currentTrack.title}</div>
-                  <div style={{ fontSize: '10px', color: '#B8860B' }}>{currentTrack.artist}</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontWeight: '700', fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentSong.title}</div>
+                  <div style={{ fontSize: '10px', color: '#B8860B' }}>{currentSong.artist}</div>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', opacity: 0.6 }}><IC size={18} color="#fff"><SkipBack /></IC></button>
-                <button onClick={() => setIsPlaying(!isPlaying)} style={{ cursor: 'pointer', background: '#B8860B', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: 'none' }}>
-                  <IC size={16} color="#000">{isPlaying ? <Pause /> : <PlayCircle />}</IC>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+                <button onClick={() => {
+                  const idx = songs.findIndex(s => s.id === currentSong.id);
+                  if (idx > 0) playSong(songs[idx - 1]);
+                }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', opacity: 0.6 }}>
+                  <IC size={18} color="#fff"><SkipBack /></IC>
                 </button>
-                <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', opacity: 0.6 }}><IC size={18} color="#fff"><SkipForward /></IC></button>
-                <button onClick={() => setShowPlayer(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', opacity: 0.35, marginLeft: '4px' }}>
+                <button onClick={() => {
+                  setSongPlaying(!songPlaying);
+                  if (audioRef.current) songPlaying ? audioRef.current.pause() : audioRef.current.play();
+                }} style={{ cursor: 'pointer', background: '#B8860B', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', border: 'none' }}>
+                  <IC size={16} color="#000">{songPlaying ? <Pause /> : <PlayCircle />}</IC>
+                </button>
+                <button onClick={() => {
+                  const idx = songs.findIndex(s => s.id === currentSong.id);
+                  if (idx < songs.length - 1) playSong(songs[idx + 1]);
+                }} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', opacity: 0.6 }}>
+                  <IC size={18} color="#fff"><SkipForward /></IC>
+                </button>
+                <button onClick={() => { setShowPlayer(false); setSongPlaying(false); if (audioRef.current) audioRef.current.pause(); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', opacity: 0.35, marginLeft: '4px' }}>
                   <IC size={16} color="#fff"><X /></IC>
                 </button>
               </div>
