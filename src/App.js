@@ -1273,8 +1273,21 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   };
 
   const playSong = (song) => {
-    setCurrentTrack(song); setShowPlayer(true); setIsPlaying(true);
-    triggerToast(`${t('nowPlaying')} ${song.title}`);
+    if (currentSong?.id === song.id) {
+      // same song — toggle play/pause
+      setSongPlaying(prev => {
+        if (audioRef.current) {
+          prev ? audioRef.current.pause() : audioRef.current.play().catch(() => {});
+        }
+        return !prev;
+      });
+    } else {
+      // new song
+      setCurrentSong(song);
+      setSongPlaying(true);
+    }
+    setShowPlayer(true);
+    triggerToast(t('nowPlaying') + ' ' + song.title);
   };
 
   const handleVideoSwipe = (dir) => {
