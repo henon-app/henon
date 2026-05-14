@@ -874,6 +874,15 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
 
+  // ---- Fasting & Saints state ----
+  const [fastingDays, setFastingDays] = useState(FASTING_DAYS);
+  const [saints, setSaints] = useState(SAINTS);
+  const [showFastingAdmin, setShowFastingAdmin] = useState(false);
+  const [showSaintAdmin, setShowSaintAdmin] = useState(false);
+  const [fastingForm, setFastingForm] = useState({ name: '', description: '', status: 'አስገዳጅ' });
+  const [saintForm, setSaintForm] = useState({ name: '', title: '', day: '', color: '#B8860B', description: '' });
+  const ADMIN_EMAIL = 'asaminewpio60@gmail.com';
+
   // ---- Songs state ----
   const [songs, setSongs] = useState([]);
   const [currentSong, setCurrentSong] = useState(null);
@@ -1057,6 +1066,79 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       triggerToast('Story አልተጫነም: ' + err.message);
     }
     if (storyInputRef.current) storyInputRef.current.value = '';
+  };
+
+  // ---- Fasting ከ Supabase ----
+  const fetchFasting = useCallback(async () => {
+    const { data } = await supabase
+      .from('fasting_days')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order', { ascending: true });
+    if (data && data.length > 0) setFastingDays(data);
+  }, []);
+
+  const fetchSaints = useCallback(async () => {
+    const { data } = await supabase
+      .from('saints')
+      .select('*')
+      .eq('is_active', true)
+      .order('day', { ascending: true });
+    if (data && data.length > 0) setSaints(data);
+  }, []);
+
+  useEffect(() => { fetchFasting(); fetchSaints(); }, [fetchFasting, fetchSaints]);
+
+  // ---- Admin: Fasting add ----
+  const handleAddFasting = async () => {
+    if (!fastingForm.name.trim()) return triggerToast('ስም ያስፈልጋል!');
+    const { error } = await supabase.from('fasting_days').insert([{
+      name: fastingForm.name,
+      description: fastingForm.description,
+      status: fastingForm.status,
+      is_active: true,
+    }]);
+    if (error) { triggerToast('ስህተት: ' + error.message); }
+    else {
+      triggerToast('ጾም ተጨምሯል! ✅');
+      setFastingForm({ name: '', description: '', status: 'አስገዳጅ' });
+      setShowFastingAdmin(false);
+      fetchFasting();
+    }
+  };
+
+  // ---- Admin: Saint add ----
+  const handleAddSaint = async () => {
+    if (!saintForm.name.trim() || !saintForm.day.trim()) return triggerToast('ስም እና ቀን ያስፈልጋል!');
+    const { error } = await supabase.from('saints').insert([{
+      name: saintForm.name,
+      title: saintForm.title,
+      day: saintForm.day,
+      color: saintForm.color,
+      description: saintForm.description,
+      is_active: true,
+    }]);
+    if (error) { triggerToast('ስህተት: ' + error.message); }
+    else {
+      triggerToast('ቅዱስ ተጨምሯል! ✅');
+      setSaintForm({ name: '', title: '', day: '', color: '#B8860B', description: '' });
+      setShowSaintAdmin(false);
+      fetchSaints();
+    }
+  };
+
+  // ---- Admin: Delete fasting ----
+  const handleDeleteFasting = async (id) => {
+    await supabase.from('fasting_days').delete().eq('id', id);
+    fetchFasting();
+    triggerToast('ተሰርዟል!');
+  };
+
+  // ---- Admin: Delete saint ----
+  const handleDeleteSaint = async (id) => {
+    await supabase.from('saints').delete().eq('id', id);
+    fetchSaints();
+    triggerToast('ተሰርዟል!');
   };
 
   // ---- Songs ከ Supabase ----
@@ -1870,35 +1952,146 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 
   // ===================== RENDER CALENDAR =====================
   const renderCalendar = () => (
-    <div style={{ paddingBottom: '20px' }}>
+    <div style={{ paddingBottom: '80px' }}>
+      {/* Header */}
       <div style={{ background: '#1A1508', padding: '20px', borderRadius: '16px', marginBottom: '16px', textAlign: 'center', border: '2px solid #B8860B55' }}>
         <CrossIcon size={24} color="#B8860B" />
-        <h1 style={{ margin: '8px 0 4px', color: '#B8860B', fontSize: '26px' }}>ሚያዝያ ፳፱</h1>
-        <p style={{ margin: 0, opacity: 0.8, fontSize: '13px' }}>ሐሙስ • ፳፻፲፰ ዓ.ም</p>
+        <h1 style={{ margin: '8px 0 4px', color: '#B8860B', fontSize: '26px' }}>
+          {new Date().toLocaleDateString('am-ET', { weekday: 'long' })}
+        </h1>
+        <p style={{ margin: 0, opacity: 0.8, fontSize: '13px' }}>
+          {new Date().toLocaleDateString('am-ET', { year: 'numeric', month: 'long', day: 'numeric' })}
+        </p>
       </div>
+
+      {/* Fasting Section */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <h3 style={{ margin: 0, color: '#B8860B', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <CrossIcon size={16} color="#B8860B" /> የጾም ቀናት
+        </h3>
+        {user.email === ADMIN_EMAIL && (
+          <button onClick={() => setShowFastingAdmin(true)}
+            style={{ background: '#B8860B22', border: '1px solid #B8860B55', borderRadius: '20px', padding: '5px 12px', color: '#B8860B', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <IC size={12} color="#B8860B"><Plus /></IC> ጨምር
+          </button>
+        )}
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '20px' }}>
-        {FASTING_DAYS.map(f => (
-          <div key={f.id} onClick={() => triggerToast(f.description)} style={{ background: '#1A1508', padding: '16px 12px', borderRadius: '14px', border: '1px solid #2a2010', cursor: 'pointer', textAlign: 'center' }}>
+        {fastingDays.map((f, i) => (
+          <div key={f.id || i} style={{ background: '#1A1508', padding: '16px 12px', borderRadius: '14px', border: '1px solid #2a2010', textAlign: 'center', position: 'relative' }}
+            onClick={() => f.description && triggerToast(f.description)}>
             <div style={{ marginBottom: '8px', display: 'flex', justifyContent: 'center' }}>
               <CrossIcon size={24} color="#B8860B" />
             </div>
             <div style={{ fontWeight: '700', fontSize: '13px' }}>{f.name}</div>
             <div style={{ fontSize: '10px', color: '#B8860B', marginTop: '3px' }}>{f.status}</div>
+            {user.email === ADMIN_EMAIL && (
+              <button onClick={(e) => { e.stopPropagation(); handleDeleteFasting(f.id); }}
+                style={{ position: 'absolute', top: '6px', right: '6px', background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}>
+                <X size={12} color="#ff6666" />
+              </button>
+            )}
           </div>
         ))}
       </div>
-      {SAINTS.map((s, i) => (
-        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', backgroundColor: '#1A1508', borderRadius: '10px', marginBottom: '8px', border: '1px solid #2a2010', alignItems: 'center' }}>
+
+      {/* Saints Section */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+        <h3 style={{ margin: 0, color: '#B8860B', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <IC size={16} color="#B8860B"><Crown /></IC> የቅዱሳን ዝክር
+        </h3>
+        {user.email === ADMIN_EMAIL && (
+          <button onClick={() => setShowSaintAdmin(true)}
+            style={{ background: '#B8860B22', border: '1px solid #B8860B55', borderRadius: '20px', padding: '5px 12px', color: '#B8860B', cursor: 'pointer', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <IC size={12} color="#B8860B"><Plus /></IC> ጨምር
+          </button>
+        )}
+      </div>
+
+      {saints.map((s, i) => (
+        <div key={s.id || i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', backgroundColor: '#1A1508', borderRadius: '10px', marginBottom: '8px', border: '1px solid #2a2010', alignItems: 'center', position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <span style={{ color: '#B8860B', fontWeight: '700', width: '24px', fontSize: '13px' }}>{s.day}</span>
             <div>
               <div style={{ fontSize: '13px', fontWeight: '600' }}>{s.name}</div>
               <div style={{ fontSize: '11px', color: '#888' }}>{s.title}</div>
+              {s.description && <div style={{ fontSize: '10px', color: '#555', marginTop: '2px' }}>{s.description}</div>}
             </div>
           </div>
-          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.color }}></div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: s.color }}></div>
+            {user.email === ADMIN_EMAIL && (
+              <button onClick={() => handleDeleteSaint(s.id)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5 }}>
+                <X size={12} color="#ff6666" />
+              </button>
+            )}
+          </div>
         </div>
       ))}
+
+      {/* Admin — Add Fasting Modal */}
+      {showFastingAdmin && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ background: '#1A1508', borderRadius: '24px 24px 0 0', padding: '24px', width: '100%', maxWidth: '430px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, color: '#B8860B' }}>☦️ ጾም ጨምር</h3>
+              <button onClick={() => setShowFastingAdmin(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={20} color="#888" />
+              </button>
+            </div>
+            <input value={fastingForm.name} onChange={e => setFastingForm({...fastingForm, name: e.target.value})}
+              placeholder="የጾም ስም (ለምሳሌ: ዐቢይ ጾም)"
+              style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '10px', boxSizing: 'border-box' }} />
+            <input value={fastingForm.description} onChange={e => setFastingForm({...fastingForm, description: e.target.value})}
+              placeholder="መግለጫ"
+              style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '10px', boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+              {['አስገዳጅ', 'ወቅታዊ', 'አማራጭ'].map(s => (
+                <button key={s} onClick={() => setFastingForm({...fastingForm, status: s})}
+                  style={{ flex: 1, padding: '8px', background: fastingForm.status === s ? '#B8860B' : '#0D0A06', border: '1px solid #2a2010', borderRadius: '10px', color: fastingForm.status === s ? '#000' : '#888', cursor: 'pointer', fontSize: '12px', fontFamily: 'inherit' }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+            <button onClick={handleAddFasting}
+              style={{ width: '100%', background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '14px', padding: '14px', color: '#000', fontWeight: '800', cursor: 'pointer', fontSize: '15px' }}>
+              ጨምር ✅
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Admin — Add Saint Modal */}
+      {showSaintAdmin && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ background: '#1A1508', borderRadius: '24px 24px 0 0', padding: '24px', width: '100%', maxWidth: '430px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ margin: 0, color: '#B8860B' }}>👑 ቅዱስ ጨምር</h3>
+              <button onClick={() => setShowSaintAdmin(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <X size={20} color="#888" />
+              </button>
+            </div>
+            <input value={saintForm.name} onChange={e => setSaintForm({...saintForm, name: e.target.value})}
+              placeholder="የቅዱሱ ስም"
+              style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '10px', boxSizing: 'border-box' }} />
+            <input value={saintForm.title} onChange={e => setSaintForm({...saintForm, title: e.target.value})}
+              placeholder="ማዕረግ (ለምሳሌ: ሊቀ መላእክት)"
+              style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '10px', boxSizing: 'border-box' }} />
+            <input value={saintForm.day} onChange={e => setSaintForm({...saintForm, day: e.target.value})}
+              placeholder="ቀን (ለምሳሌ: 12)"
+              style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '10px', boxSizing: 'border-box' }} />
+            <input value={saintForm.description} onChange={e => setSaintForm({...saintForm, description: e.target.value})}
+              placeholder="መግለጫ (አማራጭ)"
+              style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '14px', boxSizing: 'border-box' }} />
+            <button onClick={handleAddSaint}
+              style={{ width: '100%', background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '14px', padding: '14px', color: '#000', fontWeight: '800', cursor: 'pointer', fontSize: '15px' }}>
+              ጨምር ✅
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 
