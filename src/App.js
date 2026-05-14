@@ -3073,7 +3073,12 @@ const App = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [accounts, setAccounts] = useState([]);
+  const [accounts, setAccounts] = useState(() => {
+    try {
+      const saved = localStorage.getItem('henon_accounts');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
   const [appLang, setAppLang] = useState('am');
 
   useEffect(() => {
@@ -3084,8 +3089,10 @@ const App = () => {
   const handleAuthSuccess = useCallback((userData) => {
     setUser(userData);
     setAccounts(prev => {
-      if (prev.find(a => a.email === userData.email)) return prev;
-      return [...prev, userData];
+      const exists = prev.find(a => a.email === userData.email);
+      const updated = exists ? prev : [...prev, userData];
+      try { localStorage.setItem('henon_accounts', JSON.stringify(updated)); } catch {}
+      return updated;
     });
     return userData;
   }, []);
