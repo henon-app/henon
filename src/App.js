@@ -2814,26 +2814,65 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       <h2 style={{ color: '#B8860B', marginBottom: '20px', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
         <IC size={20} color="#B8860B"><UserPlus /></IC> {t('addAccountTitle')}
       </h2>
-      <div style={{ background: '#1A1508', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2a2010', marginBottom: '20px' }}>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid #2a2010', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>{t('existingAccounts')}</div>
-        {accounts.map((acc, i) => (
-          <div key={i} onClick={() => onSwitchAccount(acc)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: i < accounts.length - 1 ? '1px solid #2a2010' : 'none', cursor: 'pointer', background: acc.email === user.email ? 'rgba(184,134,11,0.1)' : 'transparent' }}>
-            <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'linear-gradient(135deg,#B8860B,#FFD700)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontSize: '16px', fontWeight: '900', color: '#000' }}>{acc.name.slice(0,2).toUpperCase()}</span>
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: '700', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                {acc.name} {acc.email === user.email && <span style={{ fontSize: '10px', background: '#B8860B22', color: '#B8860B', border: '1px solid #B8860B44', borderRadius: '8px', padding: '1px 6px' }}>{t('currentAccount')}</span>}
-              </div>
-              <div style={{ fontSize: '11px', color: '#888' }}>{acc.email}</div>
-            </div>
-            {acc.email === user.email && <Check size={16} color="#B8860B" />}
+
+      {/* Current account highlight */}
+      <div style={{ background: 'linear-gradient(135deg,#1A1508,#2a1e08)', borderRadius: '16px', padding: '16px', marginBottom: '16px', border: '1px solid #B8860B44', display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'linear-gradient(135deg,#B8860B,#FFD700)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <span style={{ fontSize: '18px', fontWeight: '900', color: '#000' }}>{userInitials}</span>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: '700', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {user.name}
+            {isVerified && <BadgeCheck size={14} color="#B8860B" />}
           </div>
-        ))}
+          <div style={{ fontSize: '12px', color: '#B8860B', marginTop: '2px' }}>{user.email}</div>
+          <div style={{ fontSize: '10px', color: '#555', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4CAF50' }} />
+            {t('currentAccount')}
+          </div>
+        </div>
+        <button onClick={() => { supabase.auth.signOut(); triggerToast('ወጥቷል!'); }}
+          style={{ background: '#3a000022', border: '1px solid #ff444433', borderRadius: '10px', padding: '7px 12px', color: '#ff8888', cursor: 'pointer', fontSize: '11px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <IC size={13} color="#ff8888"><LogOut /></IC> ውጣ
+        </button>
       </div>
-      <button onClick={onAddAccount} style={{ background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '14px', padding: '15px', color: '#000', fontWeight: '700', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', width: '100%' }}>
+
+      {/* Other accounts */}
+      {accounts.filter(a => a.email !== user.email).length > 0 && (
+        <div style={{ background: '#1A1508', borderRadius: '16px', overflow: 'hidden', border: '1px solid #2a2010', marginBottom: '16px' }}>
+          <div style={{ padding: '10px 16px', borderBottom: '1px solid #2a2010', fontSize: '11px', color: '#666', textTransform: 'uppercase', letterSpacing: '1px' }}>
+            {t('existingAccounts')}
+          </div>
+          {accounts.filter(a => a.email !== user.email).map((acc, i, arr) => (
+            <div key={i} onClick={() => onSwitchAccount(acc)}
+              style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px', borderBottom: i < arr.length - 1 ? '1px solid #2a2010' : 'none', cursor: 'pointer' }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'linear-gradient(135deg,#2a2010,#1A1508)', border: '1px solid #B8860B44', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ fontSize: '15px', fontWeight: '900', color: '#B8860B' }}>{acc.name.slice(0,2).toUpperCase()}</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: '600', fontSize: '14px' }}>{acc.name}</div>
+                <div style={{ fontSize: '11px', color: '#888' }}>{acc.email}</div>
+              </div>
+              <div style={{ background: '#B8860B22', border: '1px solid #B8860B44', borderRadius: '10px', padding: '5px 10px', fontSize: '11px', color: '#B8860B', cursor: 'pointer' }}>
+                ቀይር
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add new account */}
+      <button onClick={onAddAccount}
+        style={{ width: '100%', background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '14px', padding: '15px', color: '#000', fontWeight: '800', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '10px' }}>
         <UserPlus size={18} color="#000" /> {t('newAccountCreate')}
       </button>
+
+      {/* Info note */}
+      <p style={{ textAlign: 'center', fontSize: '11px', color: '#444', lineHeight: '1.6' }}>
+        አዲስ ሂሳብ ሲጨምሩ — አሁን ያለው ሂሳብ ይቀመጣል።{'
+'}
+        ማንኛውም ጊዜ መቀያየር ይችላሉ።
+      </p>
     </div>
   );
 
