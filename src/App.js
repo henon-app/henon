@@ -214,10 +214,20 @@ const Avatar = ({ initials, color, size = 40, fontSize = 14 }) => (
 );
 
 const CrossIcon = ({ size = 18, color = '#B8860B' }) => (
-  <svg width={size} height={size} viewBox="0 0 100 100" fill={color}>
-    <rect x="44" y="5" width="12" height="90" rx="2"/>
-    <rect x="10" y="25" width="80" height="12" rx="2"/>
-    <rect x="25" y="48" width="50" height="10" rx="2"/>
+  <svg width={size} height={size} viewBox="0 0 100 120" fill="none">
+    {/* ዋና አቀባዊ */}
+    <rect x="45" y="0" width="10" height="120" rx="3" fill={color}/>
+    {/* ላይኛው አግድም */}
+    <rect x="10" y="18" width="80" height="10" rx="3" fill={color}/>
+    {/* መካከለኛ አግድም */}
+    <rect x="22" y="42" width="56" height="8" rx="3" fill={color}/>
+    {/* ታችኛው አግድም — ኢትዮጵያዊ */}
+    <rect x="30" y="65" width="40" height="7" rx="3" fill={color}/>
+    {/* 4 ጥግ ጌጥ */}
+    <rect x="10" y="13" width="10" height="10" rx="2" fill={color}/>
+    <rect x="80" y="13" width="10" height="10" rx="2" fill={color}/>
+    <rect x="10" y="25" width="10" height="10" rx="2" fill={color}/>
+    <rect x="80" y="25" width="10" height="10" rx="2" fill={color}/>
   </svg>
 );
 
@@ -881,6 +891,9 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const [showSaintAdmin, setShowSaintAdmin] = useState(false);
   const [fastingForm, setFastingForm] = useState({ name: '', description: '', status: 'አስገዳጅ' });
   const [saintForm, setSaintForm] = useState({ name: '', title: '', day: '', color: '#B8860B', description: '' });
+  const [selectedSaintImage, setSelectedSaintImage] = useState(null);
+  const [saintImageUploading, setSaintImageUploading] = useState(false);
+  const saintImageRef = useRef(null);
   const ADMIN_EMAIL = 'asaminewpio60@gmail.com';
 
   // ---- Songs state ----
@@ -1110,18 +1123,44 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   // ---- Admin: Saint add ----
   const handleAddSaint = async () => {
     if (!saintForm.name.trim() || !saintForm.day.trim()) return triggerToast('ስም እና ቀን ያስፈልጋል!');
+    setSaintImageUploading(true);
+
+    let imageUrl = null;
+
+    // Saint image upload
+    if (selectedSaintImage?.file) {
+      try {
+        const ext = selectedSaintImage.file.name.split('.').pop();
+        const fileName = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext;
+        const { error: upErr } = await supabase.storage
+          .from('saint-images')
+          .upload('saints/' + fileName, selectedSaintImage.file, { cacheControl: '3600', upsert: false });
+        if (upErr) throw upErr;
+        const { data } = supabase.storage.from('saint-images').getPublicUrl('saints/' + fileName);
+        imageUrl = data.publicUrl;
+      } catch (err) {
+        setSaintImageUploading(false);
+        return triggerToast('ስዕል አልተጫነም: ' + err.message);
+      }
+    }
+
     const { error } = await supabase.from('saints').insert([{
       name: saintForm.name,
       title: saintForm.title,
       day: saintForm.day,
       color: saintForm.color,
       description: saintForm.description,
+      image_url: imageUrl,
       is_active: true,
     }]);
+
+    setSaintImageUploading(false);
+
     if (error) { triggerToast('ስህተት: ' + error.message); }
     else {
       triggerToast('ቅዱስ ተጨምሯል! ✅');
       setSaintForm({ name: '', title: '', day: '', color: '#B8860B', description: '' });
+      setSelectedSaintImage(null);
       setShowSaintAdmin(false);
       fetchSaints();
     }
@@ -2012,11 +2051,20 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       {saints.map((s, i) => (
         <div key={s.id || i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', backgroundColor: '#1A1508', borderRadius: '10px', marginBottom: '8px', border: '1px solid #2a2010', alignItems: 'center', position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ color: '#B8860B', fontWeight: '700', width: '24px', fontSize: '13px' }}>{s.day}</span>
+            {/* Saint image or day number */}
+            {s.image_url ? (
+              <img src={s.image_url} alt={s.name}
+                style={{ width: '44px', height: '44px', borderRadius: '10px', objectFit: 'cover', border: '2px solid #B8860B44', flexShrink: 0 }} />
+            ) : (
+              <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: '#0D0A06', border: '1px solid #2a2010', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <span style={{ color: '#B8860B', fontWeight: '800', fontSize: '15px' }}>{s.day}</span>
+              </div>
+            )}
             <div>
               <div style={{ fontSize: '13px', fontWeight: '600' }}>{s.name}</div>
               <div style={{ fontSize: '11px', color: '#888' }}>{s.title}</div>
               {s.description && <div style={{ fontSize: '10px', color: '#555', marginTop: '2px' }}>{s.description}</div>}
+              {s.image_url && <div style={{ fontSize: '10px', color: '#B8860B44', marginTop: '1px' }}>ቀን: {s.day}</div>}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2084,10 +2132,30 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
               style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '10px', boxSizing: 'border-box' }} />
             <input value={saintForm.description} onChange={e => setSaintForm({...saintForm, description: e.target.value})}
               placeholder="መግለጫ (አማራጭ)"
-              style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '14px', boxSizing: 'border-box' }} />
-            <button onClick={handleAddSaint}
-              style={{ width: '100%', background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '14px', padding: '14px', color: '#000', fontWeight: '800', cursor: 'pointer', fontSize: '15px' }}>
-              ጨምር ✅
+              style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', fontSize: '14px', fontFamily: 'inherit', marginBottom: '10px', boxSizing: 'border-box' }} />
+
+            {/* Saint image upload */}
+            <div onClick={() => saintImageRef.current?.click()}
+              style={{ width: '100%', background: '#0D0A06', border: `2px dashed ${selectedSaintImage ? '#B8860B' : '#2a2010'}`, borderRadius: '12px', padding: '14px', textAlign: 'center', cursor: 'pointer', marginBottom: '14px', boxSizing: 'border-box' }}>
+              {selectedSaintImage ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center' }}>
+                  <img src={URL.createObjectURL(selectedSaintImage.file)} alt="preview"
+                    style={{ width: '50px', height: '50px', borderRadius: '8px', objectFit: 'cover' }} />
+                  <span style={{ fontSize: '12px', color: '#B8860B' }}>✅ {selectedSaintImage.name}</span>
+                </div>
+              ) : (
+                <>
+                  <IC size={22} color="#444"><Image /></IC>
+                  <div style={{ fontSize: '12px', color: '#555', marginTop: '6px' }}>የቅዱሱ ስዕል ምረጥ (አማራጭ)</div>
+                </>
+              )}
+            </div>
+            <input ref={saintImageRef} type="file" accept="image/*" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files[0]; if (f) setSelectedSaintImage({ file: f, name: f.name }); }} />
+
+            <button onClick={handleAddSaint} disabled={saintImageUploading}
+              style={{ width: '100%', background: saintImageUploading ? '#555' : 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '14px', padding: '14px', color: '#000', fontWeight: '800', cursor: saintImageUploading ? 'not-allowed' : 'pointer', fontSize: '15px' }}>
+              {saintImageUploading ? '⏳ እየተጫነ...' : 'ጨምር ✅'}
             </button>
           </div>
         </div>
