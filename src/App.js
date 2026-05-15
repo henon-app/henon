@@ -882,6 +882,14 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
 
+  // ---- Search state ----
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState({ posts: [], songs: [], bible: [] });
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchTab, setSearchTab] = useState('all');
+  const searchTimeoutRef = useRef(null);
+
   // ---- Settings UI state ----
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -1097,6 +1105,39 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       triggerToast('Story አልተጫነም: ' + err.message);
     }
     if (storyInputRef.current) storyInputRef.current.value = '';
+  };
+
+  // ---- Search ----
+  const handleSearch = async (query) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setSearchResults({ posts: [], songs: [], bible: [] });
+      return;
+    }
+    clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSearchLoading(true);
+      const q = query.trim();
+
+      const [postsRes, songsRes, bibleRes] = await Promise.all([
+        supabase.from('posts').select('*')
+          .or(`text.ilike.%${q}%,author.ilike.%${q}%`)
+          .limit(10),
+        supabase.from('songs').select('*')
+          .or(`title.ilike.%${q}%,artist.ilike.%${q}%`)
+          .limit(8),
+        supabase.from('bible_content').select('*')
+          .or(`title.ilike.%${q}%,content.ilike.%${q}%,reference.ilike.%${q}%`)
+          .limit(8),
+      ]);
+
+      setSearchResults({
+        posts: postsRes.data || [],
+        songs: songsRes.data || [],
+        bible: bibleRes.data || [],
+      });
+      setSearchLoading(false);
+    }, 400);
   };
 
   // ---- Bible ከ Supabase ----
@@ -3167,7 +3208,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
             </div>
             <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
               {[
-                { Icon: Search, action: () => triggerToast('ፍለጋ...') },
+                { Icon: Search, action: () => setShowSearch(true) },
                 { Icon: BellRing, action: () => triggerToast('3 ማሳወቂያዎች አሉ'), badge: true },
                 { Icon: SlidersHorizontal, action: () => setActiveTab('settings') },
               ].map(({ Icon: Ic, action, badge }, i) => (
@@ -3241,6 +3282,151 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
                 </div>
               </div>
             </>
+          )}
+
+          {/* ===================== SEARCH MODAL ===================== */}
+          {showSearch && (
+            <div style={{ position: 'fixed', inset: 0, background: darkMode ? '#0D0A06' : '#F5F0E8', zIndex: 8000, display: 'flex', flexDirection: 'column' }}>
+              {/* Search Header */}
+              <div style={{ padding: '16px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: `1px solid ${BORDER}` }}>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', background: CARD, border: `1px solid ${BORDER}`, borderRadius: '14px', padding: '10px 14px' }}>
+                  <Search size={18} color="#B8860B" strokeWidth={1.8} />
+                  <input
+                    autoFocus
+                    value={searchQuery}
+                    onChange={e => handleSearch(e.target.value)}
+                    placeholder="ፖስት፣ ዝማሬ፣ ጥቅስ ፈልግ..."
+                    style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: TEXT, fontSize: '15px', fontFamily: 'inherit' }}
+                  />
+                  {searchQuery && (
+                    <button onClick={() => { setSearchQuery(''); setSearchResults({ posts: [], songs: [], bible: [] }); }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
+                      <X size={16} color="#888" />
+                    </button>
+                  )}
+                </div>
+                <button onClick={() => { setShowSearch(false); setSearchQuery(''); setSearchResults({ posts: [], songs: [], bible: [] }); }}
+                  style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', fontSize: '14px', fontWeight: '600', fontFamily: 'inherit', flexShrink: 0 }}>
+                  ሰርዝ
+                </button>
+              </div>
+
+              {/* Search Tabs */}
+              {searchQuery.trim() && (
+                <div style={{ display: 'flex', gap: '8px', padding: '10px 16px', overflowX: 'auto', scrollbarWidth: 'none', borderBottom: `1px solid ${BORDER}` }}>
+                  {[
+                    { key: 'all', label: 'ሁሉም', count: searchResults.posts.length + searchResults.songs.length + searchResults.bible.length },
+                    { key: 'posts', label: '📝 ፖስቶች', count: searchResults.posts.length },
+                    { key: 'songs', label: '🎵 ዝማሬ', count: searchResults.songs.length },
+                    { key: 'bible', label: '📖 ቃል', count: searchResults.bible.length },
+                  ].map(tab => (
+                    <button key={tab.key} onClick={() => setSearchTab(tab.key)}
+                      style={{ flexShrink: 0, background: searchTab === tab.key ? '#B8860B' : CARD, border: `1px solid ${searchTab === tab.key ? '#B8860B' : BORDER}`, borderRadius: '20px', padding: '6px 14px', color: searchTab === tab.key ? '#000' : TEXT2, cursor: 'pointer', fontSize: '12px', fontWeight: searchTab === tab.key ? '700' : '400', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      {tab.label}
+                      {tab.count > 0 && <span style={{ background: searchTab === tab.key ? '#00000033' : '#B8860B33', borderRadius: '10px', padding: '1px 6px', fontSize: '10px', color: searchTab === tab.key ? '#000' : '#B8860B' }}>{tab.count}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Search Results */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+                {/* Loading */}
+                {searchLoading && (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#B8860B' }}>
+                    <div style={{ width: '32px', height: '32px', border: '3px solid #2a2010', borderTop: '3px solid #B8860B', borderRadius: '50%', margin: '0 auto 12px', animation: 'spin 1s linear infinite' }} />
+                    <div style={{ fontSize: '13px' }}>እየፈለገ...</div>
+                  </div>
+                )}
+
+                {/* Empty state */}
+                {!searchLoading && !searchQuery.trim() && (
+                  <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                    <Search size={48} color="#2a2010" strokeWidth={1.5} />
+                    <p style={{ color: TEXT2, fontSize: '14px', marginTop: '16px' }}>ምን መፈለግ ይፈልጋሉ?</p>
+                    <p style={{ color: '#444', fontSize: '12px' }}>ፖስቶች፣ ዝማሬዎች፣ ጥቅሶች</p>
+                  </div>
+                )}
+
+                {/* No results */}
+                {!searchLoading && searchQuery.trim() && searchResults.posts.length === 0 && searchResults.songs.length === 0 && searchResults.bible.length === 0 && (
+                  <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                    <Search size={48} color="#2a2010" strokeWidth={1.5} />
+                    <p style={{ color: TEXT2, fontSize: '14px', marginTop: '16px' }}>"{searchQuery}" አልተገኘም</p>
+                    <p style={{ color: '#444', fontSize: '12px' }}>ሌላ ቃል ሞክሩ</p>
+                  </div>
+                )}
+
+                {/* Posts Results */}
+                {!searchLoading && (searchTab === 'all' || searchTab === 'posts') && searchResults.posts.length > 0 && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <h4 style={{ color: '#B8860B', margin: '0 0 10px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      📝 ፖስቶች <span style={{ color: '#444', fontWeight: '400' }}>({searchResults.posts.length})</span>
+                    </h4>
+                    {searchResults.posts.map(p => (
+                      <div key={p.id} onClick={() => { setShowSearch(false); setActiveTab('home'); }}
+                        style={{ background: CARD, borderRadius: '14px', padding: '14px', marginBottom: '10px', border: `1px solid ${BORDER}`, cursor: 'pointer' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                          <Avatar initials={p.initials || 'U'} color={p.color || '#B8860B'} size={34} />
+                          <div>
+                            <div style={{ fontWeight: '700', fontSize: '13px', color: TEXT }}>{p.author}</div>
+                            <div style={{ fontSize: '10px', color: TEXT2 }}>{p.type === 'video' ? '🎥 ቪዲዮ' : p.type === 'photo' ? '📷 ፎቶ' : '📝 ጽሑፍ'}</div>
+                          </div>
+                        </div>
+                        {p.text && <p style={{ margin: 0, fontSize: '13px', color: TEXT2, lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.text}</p>}
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                          <span style={{ fontSize: '10px', color: '#555' }}>❤️ {p.likes || 0}</span>
+                          <span style={{ fontSize: '10px', color: '#555' }}>🙏 {p.prayers || 0}</span>
+                          {p.view_count > 0 && <span style={{ fontSize: '10px', color: '#555' }}>👁️ {p.view_count}</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Songs Results */}
+                {!searchLoading && (searchTab === 'all' || searchTab === 'songs') && searchResults.songs.length > 0 && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <h4 style={{ color: '#B8860B', margin: '0 0 10px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      🎵 ዝማሬዎች <span style={{ color: '#444', fontWeight: '400' }}>({searchResults.songs.length})</span>
+                    </h4>
+                    {searchResults.songs.map(s => (
+                      <div key={s.id} onClick={() => { playSong(s); setShowSearch(false); }}
+                        style={{ background: CARD, borderRadius: '14px', padding: '12px', marginBottom: '8px', border: `1px solid ${BORDER}`, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '44px', height: '44px', borderRadius: '10px', background: s.cover_url ? 'none' : 'linear-gradient(135deg,#B8860B,#FFD700)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {s.cover_url ? <img src={s.cover_url} alt="cover" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <IC size={20} color="#000"><Headphones /></IC>}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: '700', fontSize: '13px', color: TEXT }}>{s.title}</div>
+                          <div style={{ fontSize: '11px', color: TEXT2 }}>{s.artist}</div>
+                        </div>
+                        <IC size={18} color="#B8860B"><PlayCircle /></IC>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Bible Results */}
+                {!searchLoading && (searchTab === 'all' || searchTab === 'bible') && searchResults.bible.length > 0 && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <h4 style={{ color: '#B8860B', margin: '0 0 10px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      📖 ቃለ እግዚአብሔር <span style={{ color: '#444', fontWeight: '400' }}>({searchResults.bible.length})</span>
+                    </h4>
+                    {searchResults.bible.map(b => (
+                      <div key={b.id} onClick={() => { setShowSearch(false); setActiveTab('bible'); }}
+                        style={{ background: CARD, borderRadius: '14px', padding: '14px', marginBottom: '8px', border: `1px solid ${BORDER}`, borderLeft: '4px solid #B8860B', cursor: 'pointer' }}>
+                        <div style={{ fontWeight: '700', fontSize: '13px', color: TEXT, marginBottom: '4px' }}>{b.title}</div>
+                        {b.reference && <div style={{ fontSize: '11px', color: '#B8860B', marginBottom: '6px' }}>{b.reference}</div>}
+                        {b.content && <p style={{ margin: 0, fontSize: '12px', color: TEXT2, lineHeight: '1.5', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{b.content}</p>}
+                        <div style={{ marginTop: '6px', fontSize: '10px', color: '#555' }}>
+                          {b.file_type === 'pdf' ? '📄 PDF' : b.file_type === 'audio' ? '🎵 Audio' : '📖 ጥቅስ'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
           {/* Toast notification */}
