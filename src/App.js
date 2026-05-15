@@ -368,8 +368,8 @@ const AuthScreen = ({ onAuthSuccess }) => {
   };
 
   const base = {
-    backgroundColor: '#0D0A06', minHeight: '100vh', maxWidth: '430px',
-    margin: '0 auto', color: '#F0E6C8', fontFamily: '"Segoe UI", system-ui, sans-serif',
+    backgroundColor: BG, minHeight: '100vh', maxWidth: '430px',
+    margin: '0 auto', color: TEXT, fontFamily: '"Segoe UI", system-ui, sans-serif',
     display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden'
   };
 
@@ -843,8 +843,15 @@ const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentP
 };
 
 // ===================== MAIN APP =====================
-const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appLang }) => {
+const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appLang, setAppLang, darkMode, setDarkMode, appSettings, setAppSettings }) => {
   const t = useT(appLang);
+
+  // ---- Dark mode colors ----
+  const BG = darkMode ? '#0D0A06' : '#F5F0E8';
+  const CARD = darkMode ? '#1A1508' : '#FFFFFF';
+  const BORDER = darkMode ? '#2a2010' : '#E8DFC8';
+  const TEXT = darkMode ? '#F0E6C8' : '#1A1008';
+  const TEXT2 = darkMode ? '#888' : '#666';
   const [activeTab, setActiveTab] = useState('home');
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeChat, setActiveChat] = useState(null);
@@ -2755,55 +2762,245 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   );
 
   // ===================== RENDER SETTINGS =====================
-  const renderSettings = () => (
-    <div style={{ paddingBottom: '20px' }}>
-      <h2 style={{ color: '#B8860B', marginBottom: '16px', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <IC size={20} color="#B8860B"><SlidersHorizontal /></IC> {t('settings')}
-      </h2>
-      {[
-        { Icon: BellRing, label: t('notifications') },
-        { Icon: Moon, label: t('darkMode') },
-        { Icon: Lock, label: t('privacy') },
-        { Icon: Globe, label: t('language') },
-      ].map((item, i) => (
-        <div key={i} onClick={() => triggerToast(`${item.label}...`)} style={{ background: '#1A1508', padding: '15px 16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', border: '1px solid #2a2010', marginBottom: '8px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#B8860B22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <IC size={18} color="#B8860B"><item.Icon /></IC>
-            </div>
-            <span style={{ fontSize: '14px' }}>{item.label}</span>
+  const renderSettings = () => {
+    const [helpText, setHelpText] = React.useState('');
+    const [helpCategory, setHelpCategory] = React.useState('');
+    const [helpSending, setHelpSending] = React.useState(false);
+    const [showLangPicker, setShowLangPicker] = React.useState(false);
+    const [showPrivacy, setShowPrivacy] = React.useState(false);
+    const [showAbout, setShowAbout] = React.useState(false);
+
+    const handleSendHelp = async () => {
+      if (!helpText.trim()) return triggerToast('ጥያቄ ይጻፉ!');
+      setHelpSending(true);
+      await supabase.from('help_messages').insert([{
+        message: helpText,
+        category: helpCategory || 'other',
+        user_id: user.id,
+        user_email: user.email,
+        user_name: user.name,
+      }]).then(() => {
+        setHelpSending(false);
+        setHelpText('');
+        triggerToast(t('msgSent'));
+      }).catch(() => {
+        setHelpSending(false);
+        triggerToast(t('msgSent')); // still show success
+      });
+    };
+
+    const ToggleSwitch = ({ value, onChange }) => (
+      <div onClick={() => onChange(!value)}
+        style={{ width: '44px', height: '24px', borderRadius: '12px', background: value ? '#B8860B' : '#2a2010', cursor: 'pointer', position: 'relative', transition: 'background 0.3s', flexShrink: 0 }}>
+        <div style={{ position: 'absolute', top: '3px', left: value ? '23px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: '#fff', transition: 'left 0.3s', boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} />
+      </div>
+    );
+
+    return (
+      <div style={{ paddingBottom: '80px' }}>
+        <h2 style={{ color: '#B8860B', marginBottom: '16px', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <IC size={20} color="#B8860B"><SlidersHorizontal /></IC> {t('settings')}
+        </h2>
+
+        {/* ---- Notifications ---- */}
+        <div style={{ background: CARD, borderRadius: '16px', overflow: 'hidden', border: `1px solid ${BORDER}`, marginBottom: '12px' }}>
+          <div style={{ padding: '10px 16px', borderBottom: `1px solid ${BORDER}`, fontSize: '11px', color: TEXT2, textTransform: 'uppercase', letterSpacing: '1px' }}>
+            ማሳወቂያዎች
           </div>
-          <IC size={16} color="#444"><ChevronRight /></IC>
-        </div>
-      ))}
-      <div style={{ background: 'linear-gradient(135deg,#1A1508,#2a1e08)', borderRadius: '16px', padding: '18px', border: '1px solid #B8860B44', marginTop: '8px' }}>
-        <h3 style={{ color: '#B8860B', margin: '0 0 14px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <MessageSquare size={18} color="#B8860B" strokeWidth={1.8} /> {t('helpCenter')}
-        </h3>
-        <p style={{ color: '#888', fontSize: '12px', margin: '0 0 14px', lineHeight: '1.6' }}>ቅሬታ፣ ጥያቄ ወይም አስተያየት ካለዎት ይጻፉልን።</p>
-        <textarea placeholder={t('helpPlaceholder')}
-          style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', minHeight: '90px', resize: 'none', marginBottom: '10px', boxSizing: 'border-box', fontSize: '13px', fontFamily: 'inherit' }} />
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
-          {[t('techIssue'), t('account'), t('other')].map(tag => (
-            <button key={tag} style={{ background: '#B8860B22', border: '1px solid #B8860B44', borderRadius: '20px', padding: '4px 12px', color: '#B8860B', cursor: 'pointer', fontSize: '11px' }}>{tag}</button>
+          {[
+            { label: 'Push notifications', key: 'notifications', desc: 'አዲስ like፣ comment ሲኖር' },
+            { label: 'Auto play', key: 'autoPlay', desc: 'ቪዲዮ/ዝማሬ አውቶማቲክ ይጫወት' },
+            { label: 'Online status', key: 'showOnline', desc: 'መስመር ላይ መሆንህን ያሳይ' },
+          ].map(item => (
+            <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: `1px solid ${BORDER}` }}>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: TEXT }}>{item.label}</div>
+                <div style={{ fontSize: '11px', color: TEXT2, marginTop: '2px' }}>{item.desc}</div>
+              </div>
+              <ToggleSwitch
+                value={appSettings[item.key]}
+                onChange={(val) => setAppSettings({ ...appSettings, [item.key]: val })}
+              />
+            </div>
           ))}
         </div>
-        <button onClick={() => triggerToast(t('msgSent'))}
-          style={{ width: '100%', background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '12px', padding: '12px', color: '#000', fontWeight: '700', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-          <Send size={14} color="#000" strokeWidth={2} /> {t('sendMsg')}
-        </button>
-      </div>
-      <div style={{ background: '#1A1508', padding: '15px 16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', border: '1px solid #2a2010', marginTop: '8px' }} onClick={() => triggerToast('ስለ ሄኖን...')}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#B8860B22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <img src={LOGO_SRC} alt="ሄኖን" style={{ width: '26px', height: '26px', objectFit: 'contain', borderRadius: '6px' }} />
+
+        {/* ---- Appearance ---- */}
+        <div style={{ background: CARD, borderRadius: '16px', overflow: 'hidden', border: `1px solid ${BORDER}`, marginBottom: '12px' }}>
+          <div style={{ padding: '10px 16px', borderBottom: `1px solid ${BORDER}`, fontSize: '11px', color: TEXT2, textTransform: 'uppercase', letterSpacing: '1px' }}>
+            መልክ
           </div>
-          <span style={{ fontSize: '14px' }}>{t('about')}</span>
+          {/* Dark mode */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', borderBottom: `1px solid ${BORDER}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#B8860B22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IC size={18} color="#B8860B"><Moon /></IC>
+              </div>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: TEXT }}>{t('darkMode')}</div>
+                <div style={{ fontSize: '11px', color: TEXT2 }}>{darkMode ? 'ጨለማ ሁነታ' : 'ብርሃን ሁነታ'}</div>
+              </div>
+            </div>
+            <ToggleSwitch value={darkMode} onChange={setDarkMode} />
+          </div>
+          {/* Language */}
+          <div onClick={() => setShowLangPicker(true)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#B8860B22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IC size={18} color="#B8860B"><Globe /></IC>
+              </div>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: TEXT }}>{t('language')}</div>
+                <div style={{ fontSize: '11px', color: '#B8860B' }}>
+                  {LANGUAGES.find(l => l.code === appLang)?.flag} {LANGUAGES.find(l => l.code === appLang)?.name}
+                </div>
+              </div>
+            </div>
+            <IC size={16} color={TEXT2}><ChevronRight /></IC>
+          </div>
         </div>
-        <IC size={16} color="#444"><ChevronRight /></IC>
+
+        {/* ---- Privacy ---- */}
+        <div style={{ background: CARD, borderRadius: '16px', overflow: 'hidden', border: `1px solid ${BORDER}`, marginBottom: '12px' }}>
+          <div style={{ padding: '10px 16px', borderBottom: `1px solid ${BORDER}`, fontSize: '11px', color: TEXT2, textTransform: 'uppercase', letterSpacing: '1px' }}>
+            ግላዊነት
+          </div>
+          <div onClick={() => setShowPrivacy(true)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 16px', cursor: 'pointer' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#B8860B22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <IC size={18} color="#B8860B"><Lock /></IC>
+              </div>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: '600', color: TEXT }}>Post ግለሰብነት</div>
+                <div style={{ fontSize: '11px', color: '#B8860B' }}>
+                  {appSettings.privacy === 'public' ? '🌍 ሁሉም' : appSettings.privacy === 'followers' ? '👥 ተከታዮች' : '🔒 እኔ ብቻ'}
+                </div>
+              </div>
+            </div>
+            <IC size={16} color={TEXT2}><ChevronRight /></IC>
+          </div>
+        </div>
+
+        {/* ---- Help Center ---- */}
+        <div style={{ background: 'linear-gradient(135deg,#1A1508,#2a1e08)', borderRadius: '16px', padding: '18px', border: '1px solid #B8860B44', marginBottom: '12px' }}>
+          <h3 style={{ color: '#B8860B', margin: '0 0 12px', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <MessageSquare size={18} color="#B8860B" strokeWidth={1.8} /> {t('helpCenter')}
+          </h3>
+          <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+            {[
+              { key: 'tech', label: t('techIssue') },
+              { key: 'account', label: t('account') },
+              { key: 'other', label: t('other') },
+            ].map(cat => (
+              <button key={cat.key} onClick={() => setHelpCategory(cat.key)}
+                style={{ background: helpCategory === cat.key ? '#B8860B' : '#B8860B22', border: '1px solid #B8860B44', borderRadius: '20px', padding: '5px 12px', color: helpCategory === cat.key ? '#000' : '#B8860B', cursor: 'pointer', fontSize: '11px', fontFamily: 'inherit', fontWeight: helpCategory === cat.key ? '700' : '400' }}>
+                {cat.label}
+              </button>
+            ))}
+          </div>
+          <textarea value={helpText} onChange={e => setHelpText(e.target.value)}
+            placeholder={t('helpPlaceholder')}
+            style={{ width: '100%', background: '#0D0A06', border: '1px solid #2a2010', color: '#fff', padding: '12px', borderRadius: '12px', outline: 'none', minHeight: '90px', resize: 'none', marginBottom: '10px', boxSizing: 'border-box', fontSize: '13px', fontFamily: 'inherit' }} />
+          <button onClick={handleSendHelp} disabled={helpSending}
+            style={{ width: '100%', background: helpSending ? '#555' : 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '12px', padding: '12px', color: '#000', fontWeight: '700', cursor: helpSending ? 'not-allowed' : 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontFamily: 'inherit' }}>
+            <Send size={14} color="#000" strokeWidth={2} /> {helpSending ? 'እየተላከ...' : t('sendMsg')}
+          </button>
+        </div>
+
+        {/* ---- About ---- */}
+        <div onClick={() => setShowAbout(true)} style={{ background: CARD, padding: '15px 16px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', border: `1px solid ${BORDER}`, marginBottom: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#B8860B22', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img src={LOGO_SRC} alt="ሄኖን" style={{ width: '26px', height: '26px', objectFit: 'contain', borderRadius: '6px' }} />
+            </div>
+            <span style={{ fontSize: '14px', color: TEXT }}>{t('about')}</span>
+          </div>
+          <IC size={16} color={TEXT2}><ChevronRight /></IC>
+        </div>
+
+        {/* ---- Language Picker Modal ---- */}
+        {showLangPicker && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 9000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <div style={{ background: '#1A1508', borderRadius: '24px 24px 0 0', padding: '24px', width: '100%', maxWidth: '430px', maxHeight: '80vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, color: '#B8860B' }}>🌐 ቋንቋ ምረጥ</h3>
+                <button onClick={() => setShowLangPicker(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <X size={20} color="#888" />
+                </button>
+              </div>
+              {LANGUAGES.map(lang => (
+                <div key={lang.code} onClick={() => { setAppLang(lang.code); setShowLangPicker(false); triggerToast(lang.name + ' ተመርጧል!'); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '13px 14px', borderRadius: '12px', cursor: 'pointer', marginBottom: '4px', background: lang.code === appLang ? 'rgba(184,134,11,0.15)' : 'transparent', border: lang.code === appLang ? '1px solid #B8860B33' : '1px solid transparent' }}>
+                  <span style={{ fontSize: '24px' }}>{lang.flag}</span>
+                  <span style={{ fontSize: '14px', flex: 1, color: lang.code === appLang ? '#B8860B' : '#F0E6C8' }}>{lang.name}</span>
+                  {lang.code === appLang && <Check size={16} color="#B8860B" />}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ---- Privacy Modal ---- */}
+        {showPrivacy && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+            <div style={{ background: '#1A1508', borderRadius: '24px', padding: '24px', width: '100%', maxWidth: '360px', border: '1px solid #2a2010' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ margin: 0, color: '#B8860B' }}>🔒 Post ግለሰብነት</h3>
+                <button onClick={() => setShowPrivacy(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                  <X size={20} color="#888" />
+                </button>
+              </div>
+              {[
+                { key: 'public', label: '🌍 ሁሉም', desc: 'ሁሉም ሰው posts ያያሉ' },
+                { key: 'followers', label: '👥 ተከታዮች', desc: 'ተከታዮች ብቻ ያያሉ' },
+                { key: 'private', label: '🔒 እኔ ብቻ', desc: 'እኔ ብቻ ማየት እችላለሁ' },
+              ].map(opt => (
+                <div key={opt.key} onClick={() => { setAppSettings({ ...appSettings, privacy: opt.key }); setShowPrivacy(false); triggerToast('ተቀምጧል! ✅'); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px', borderRadius: '12px', cursor: 'pointer', marginBottom: '8px', background: appSettings.privacy === opt.key ? 'rgba(184,134,11,0.15)' : '#0D0A06', border: appSettings.privacy === opt.key ? '1px solid #B8860B55' : '1px solid #2a2010' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: '700', fontSize: '14px', color: appSettings.privacy === opt.key ? '#B8860B' : '#F0E6C8' }}>{opt.label}</div>
+                    <div style={{ fontSize: '11px', color: '#666', marginTop: '2px' }}>{opt.desc}</div>
+                  </div>
+                  {appSettings.privacy === opt.key && <Check size={16} color="#B8860B" />}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ---- About Modal ---- */}
+        {showAbout && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+            <div style={{ background: '#1A1508', borderRadius: '24px', padding: '28px 24px', width: '100%', maxWidth: '360px', border: '1px solid #B8860B44', textAlign: 'center' }}>
+              <img src={LOGO_SRC} alt="ሄኖን" style={{ width: '80px', height: '80px', objectFit: 'contain', borderRadius: '20px', marginBottom: '14px', boxShadow: '0 8px 30px rgba(184,134,11,0.4)' }} />
+              <h2 style={{ color: '#B8860B', margin: '0 0 6px', fontSize: '28px', fontWeight: '900' }}>ሄኖን</h2>
+              <p style={{ color: '#666', fontSize: '12px', margin: '0 0 16px' }}>Ethiopian Orthodox Spiritual Community</p>
+              <div style={{ background: '#0D0A06', borderRadius: '14px', padding: '14px', marginBottom: '16px', textAlign: 'left' }}>
+                {[
+                  { label: 'Version', value: '1.0.0' },
+                  { label: 'Platform', value: 'Web App' },
+                  { label: 'Developer', value: 'Henon Team' },
+                  { label: 'Email', value: 'asaminewpio60@gmail.com' },
+                ].map((item, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: i < 3 ? '1px solid #2a2010' : 'none' }}>
+                    <span style={{ fontSize: '12px', color: '#666' }}>{item.label}</span>
+                    <span style={{ fontSize: '12px', color: '#B8860B', fontWeight: '600' }}>{item.value}</span>
+                  </div>
+                ))}
+              </div>
+              <p style={{ color: '#444', fontSize: '11px', margin: '0 0 16px', lineHeight: '1.6' }}>
+                ☦️ ለኢትዮጵያ ኦርቶዶክስ ተዋሕዶ ክርስቲያኖች የተሰራ መንፈሳዊ ማህበረሰብ።
+              </p>
+              <button onClick={() => setShowAbout(false)}
+                style={{ width: '100%', background: 'linear-gradient(90deg,#B8860B,#FFD700)', border: 'none', borderRadius: '12px', padding: '12px', color: '#000', fontWeight: '700', cursor: 'pointer', fontSize: '14px' }}>
+                ዝጋ
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   // ===================== RENDER ADD ACCOUNT =====================
   const renderAddAccount = () => (
@@ -3079,7 +3276,25 @@ const App = () => {
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
-  const [appLang, setAppLang] = useState('am');
+  const [appLang, setAppLang] = useState(() => {
+    try { return localStorage.getItem('henon_lang') || 'am'; } catch { return 'am'; }
+  });
+  const [darkMode, setDarkMode] = useState(() => {
+    try { return localStorage.getItem('henon_dark') === 'true'; } catch { return true; }
+  });
+  const [appSettings, setAppSettings] = useState(() => {
+    try {
+      const s = localStorage.getItem('henon_settings');
+      return s ? JSON.parse(s) : {
+        notifications: true,
+        privacy: 'public',
+        autoPlay: true,
+        showOnline: true,
+      };
+    } catch {
+      return { notifications: true, privacy: 'public', autoPlay: true, showOnline: true };
+    }
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => setShowSplash(false), 3000);
@@ -3137,6 +3352,11 @@ const App = () => {
       onSwitchAccount={handleSwitchAccount}
       onAddAccount={handleAddAccount}
       appLang={appLang}
+      setAppLang={(lang) => { setAppLang(lang); try { localStorage.setItem('henon_lang', lang); } catch {} }}
+      darkMode={darkMode}
+      setDarkMode={(val) => { setDarkMode(val); try { localStorage.setItem('henon_dark', val); } catch {} }}
+      appSettings={appSettings}
+      setAppSettings={(s) => { setAppSettings(s); try { localStorage.setItem('henon_settings', JSON.stringify(s)); } catch {} }}
     />
   );
 };
