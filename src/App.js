@@ -882,6 +882,14 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
 
+  // ---- Settings UI state ----
+  const [helpText, setHelpText] = useState('');
+  const [helpCategory, setHelpCategory] = useState('');
+  const [helpSending, setHelpSending] = useState(false);
+  const [showLangPicker, setShowLangPicker] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+
   // ---- Bible state ----
   const [bibleContent, setBibleContent] = useState(BIBLE_VERSES);
   const [showBibleUpload, setShowBibleUpload] = useState(false);
@@ -2763,13 +2771,6 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 
   // ===================== RENDER SETTINGS =====================
   const renderSettings = () => {
-    const [helpText, setHelpText] = React.useState('');
-    const [helpCategory, setHelpCategory] = React.useState('');
-    const [helpSending, setHelpSending] = React.useState(false);
-    const [showLangPicker, setShowLangPicker] = React.useState(false);
-    const [showPrivacy, setShowPrivacy] = React.useState(false);
-    const [showAbout, setShowAbout] = React.useState(false);
-
     const handleSendHelp = async () => {
       if (!helpText.trim()) return triggerToast('ጥያቄ ይጻፉ!');
       setHelpSending(true);
