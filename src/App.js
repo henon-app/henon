@@ -526,7 +526,7 @@ const AuthScreen = ({ onAuthSuccess }) => {
 
 // ===================== POST CARD — standalone component =====================
 // ✅ ትክክለኛ structure: PostCard ውጭ ነው, renderHome ውስጥ አይደለም
-const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentPostId, likedPosts, setLikedPosts, userInitials }) => {
+const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentPostId, userInitials, sendNotification }) => {
   const isCommentOpen = openCommentPostId === p.id;
 
   // ---- Comment state ----
@@ -574,6 +574,7 @@ const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentP
       await supabase.from("reactions").insert([{ post_id: Number(p.id), user_id: user.id, type: "like" }]);
       setUserLiked(true);
       setLikeCount(prev => prev + 1);
+      if (p.user_id && p.user_id !== user.id) sendNotification?.(p.user_id, 'like', 'post ላይ like አደረገ ❤️', Number(p.id));
     }
     setReactionLoading(false);
   };
@@ -591,6 +592,7 @@ const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentP
       setUserPrayed(true);
       setPrayerCount(prev => prev + 1);
       triggerToast(t("prayer"));
+      if (p.user_id && p.user_id !== user.id) sendNotification?.(p.user_id, 'prayer', 'post ላይ ጸለየ 🙏', Number(p.id));
     }
     setReactionLoading(false);
   };
@@ -686,6 +688,9 @@ const PostCard = ({ p, user, triggerToast, t, openCommentPostId, setOpenCommentP
       triggerToast('ኮሜንት አልተላከም: ' + error.message);
     } else {
       setCommentText('');
+      if (p.user_id && p.user_id !== user.id) {
+        sendNotification?.(p.user_id, 'comment', 'post ላይ አስተያየት ሰጠ 💬', Number(p.id));
+      }
       // real-time subscription ወዲያው ያጠቃልላል፤ manual fetch አያስፈልግም
     }
   };
@@ -880,6 +885,11 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
+
+  // ---- Notifications state ----
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
 
   // ---- Search state ----
   const [showSearch, setShowSearch] = useState(false);
@@ -1104,6 +1114,84 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       triggerToast('Story አልተጫነም: ' + err.message);
     }
     if (storyInputRef.current) storyInputRef.current.value = '';
+  };
+
+  // ---- Notifications ----
+  const fetchNotifications = useCallback(async () => {
+    if (!user?.id) return;
+    const { data } = await supabase
+      .from('notifications')
+      .select('*')
+      .eq('recipient_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(30);
+    if (data) {
+      setNotifications(data);
+      setUnreadCount(data.filter(n => !n.is_read).length);
+    }
+  }, [user?.id]);
+
+  useEffect(() => { fetchNotifications(); }, [fetchNotifications]);
+
+  // Real-time notifications
+  useEffect(() => {
+    if (!user?.id) return;
+    const channel = supabase
+      .channel('notifications-' + user.id)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `recipient_id=eq.${user.id}` },
+        (payload) => {
+          setNotifications(prev => [payload.new, ...prev]);
+          setUnreadCount(prev => prev + 1);
+          triggerToast('🔔 ' + payload.new.message);
+        }
+      )
+      .subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [user?.id]);
+
+  const markAllRead = async () => {
+    await supabase.from('notifications')
+      .update({ is_read: true })
+      .eq('recipient_id', user.id)
+      .eq('is_read', false);
+    setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    setUnreadCount(0);
+  };
+
+  const sendNotification = async (recipientId, type, message, postId = null) => {
+    if (!recipientId || recipientId === user.id) return;
+    await supabase.from('notifications').insert([{
+      recipient_id: recipientId,
+      sender_id: user.id,
+      sender_name: user.name,
+      sender_initials: user.name.slice(0, 2).toUpperCase(),
+      sender_color: '#B8860B',
+      type,
+      message,
+      post_id: postId,
+    }]);
+  };
+
+  const getNotifIcon = (type) => {
+    switch(type) {
+      case 'like': return '❤️';
+      case 'prayer': return '🙏';
+      case 'comment': return '💬';
+      case 'follow': return '👥';
+      case 'story': return '📸';
+      default: return '🔔';
+    }
+  };
+
+  const timeAgo = (dateStr) => {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'አሁን';
+    if (mins < 60) return `${mins} ደቂቃ`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} ሰዓት`;
+    return `${Math.floor(hrs / 24)} ቀን`;
   };
 
   // ---- Search ----
@@ -1847,9 +1935,8 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
             t={t}
             openCommentPostId={openCommentPostId}
             setOpenCommentPostId={setOpenCommentPostId}
-            likedPosts={likedPosts}
-            setLikedPosts={setLikedPosts}
             userInitials={userInitials}
+            sendNotification={sendNotification}
           />
         ))}
     </div>
@@ -3208,12 +3295,16 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
             <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
               {[
                 { Icon: Search, action: () => setShowSearch(true) },
-                { Icon: BellRing, action: () => triggerToast('3 ማሳወቂያዎች አሉ'), badge: true },
+                { Icon: BellRing, action: () => setShowNotifications(true), badge: unreadCount > 0, badgeCount: unreadCount },
                 { Icon: SlidersHorizontal, action: () => setActiveTab('settings') },
-              ].map(({ Icon: Ic, action, badge }, i) => (
+              ].map(({ Icon: Ic, action, badge, badgeCount }, i) => (
                 <button key={i} onClick={action} style={{ background: 'none', border: 'none', color: '#B8860B', cursor: 'pointer', position: 'relative', padding: '7px', borderRadius: '10px', display: 'flex' }}>
                   <IC size={20} color="#B8860B"><Ic /></IC>
-                  {badge && <div style={{ position: 'absolute', top: '5px', right: '5px', background: '#FF0000', width: '7px', height: '7px', borderRadius: '50%' }}></div>}
+                  {badge && (
+                    <div style={{ position: 'absolute', top: '4px', right: '4px', background: '#FF0000', minWidth: '14px', height: '14px', borderRadius: '7px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 3px' }}>
+                      {badgeCount > 0 && <span style={{ color: '#fff', fontSize: '9px', fontWeight: '800' }}>{badgeCount > 99 ? '99+' : badgeCount}</span>}
+                    </div>
+                  )}
                 </button>
               ))}
             </div>
@@ -3281,6 +3372,78 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
                 </div>
               </div>
             </>
+          )}
+
+          {/* ===================== NOTIFICATIONS MODAL ===================== */}
+          {showNotifications && (
+            <div style={{ position: 'fixed', inset: 0, background: darkMode ? '#0D0A06' : '#F5F0E8', zIndex: 8000, display: 'flex', flexDirection: 'column' }}>
+              {/* Header */}
+              <div style={{ padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${BORDER}` }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <button onClick={() => setShowNotifications(false)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
+                    <IC size={22} color="#B8860B"><ArrowLeft /></IC>
+                  </button>
+                  <h2 style={{ margin: 0, fontSize: '18px', color: TEXT, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <BellRing size={20} color="#B8860B" strokeWidth={1.8} /> ማሳወቂያዎች
+                    {unreadCount > 0 && (
+                      <span style={{ background: '#FF0000', color: '#fff', fontSize: '11px', fontWeight: '800', padding: '2px 7px', borderRadius: '10px' }}>
+                        {unreadCount}
+                      </span>
+                    )}
+                  </h2>
+                </div>
+                {unreadCount > 0 && (
+                  <button onClick={markAllRead}
+                    style={{ background: '#B8860B22', border: '1px solid #B8860B44', borderRadius: '20px', padding: '6px 12px', color: '#B8860B', cursor: 'pointer', fontSize: '11px', fontWeight: '700', fontFamily: 'inherit' }}>
+                    ሁሉም አንብቤዋለሁ
+                  </button>
+                )}
+              </div>
+
+              {/* Notifications List */}
+              <div style={{ flex: 1, overflowY: 'auto' }}>
+                {notifications.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+                    <BellRing size={52} color="#2a2010" strokeWidth={1.2} />
+                    <p style={{ color: TEXT2, fontSize: '14px', marginTop: '16px' }}>ማሳወቂያ የለም</p>
+                    <p style={{ color: '#444', fontSize: '12px' }}>Like፣ comment ወይም follow ሲኖር እዚህ ይታያል</p>
+                  </div>
+                ) : (
+                  notifications.map((notif, i) => (
+                    <div key={notif.id}
+                      onClick={async () => {
+                        if (!notif.is_read) {
+                          await supabase.from('notifications').update({ is_read: true }).eq('id', notif.id);
+                          setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: true } : n));
+                          setUnreadCount(prev => Math.max(0, prev - 1));
+                        }
+                      }}
+                      style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '14px 16px', borderBottom: `1px solid ${BORDER}`, cursor: 'pointer', background: notif.is_read ? 'transparent' : darkMode ? 'rgba(184,134,11,0.07)' : 'rgba(184,134,11,0.05)', position: 'relative' }}>
+                      {/* Unread dot */}
+                      {!notif.is_read && (
+                        <div style={{ position: 'absolute', left: '6px', top: '50%', transform: 'translateY(-50%)', width: '6px', height: '6px', borderRadius: '50%', background: '#B8860B' }} />
+                      )}
+                      {/* Avatar + icon */}
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                        <Avatar initials={notif.sender_initials || 'ሄ'} color={notif.sender_color || '#B8860B'} size={42} />
+                        <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', fontSize: '14px', lineHeight: 1 }}>
+                          {getNotifIcon(notif.type)}
+                        </div>
+                      </div>
+                      {/* Content */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ margin: '0 0 3px', fontSize: '13px', color: TEXT, lineHeight: '1.4' }}>
+                          <span style={{ fontWeight: '700' }}>{notif.sender_name}</span>{' '}
+                          {notif.message}
+                        </p>
+                        <span style={{ fontSize: '11px', color: TEXT2 }}>{timeAgo(notif.created_at)}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           )}
 
           {/* ===================== SEARCH MODAL ===================== */}
