@@ -864,7 +864,6 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const [notification, setNotification] = useState({ show: false, message: '' });
   const [savedVerses, setSavedVerses] = useState([]);
   const [likedPosts, setLikedPosts] = useState({});
-  const [searchQuery, setSearchQuery] = useState('');
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [likedVideos, setLikedVideos] = useState({});
   const [savedVideos, setSavedVideos] = useState({});
