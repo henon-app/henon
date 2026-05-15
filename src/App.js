@@ -883,6 +883,8 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const photoInputRef = useRef(null);
 
   // ---- Settings UI state ----
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [helpText, setHelpText] = useState('');
   const [helpCategory, setHelpCategory] = useState('');
   const [helpSending, setHelpSending] = useState(false);
@@ -1550,7 +1552,6 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
     { id: 'fasting', Icon: Calendar, label: t('fasting') },
     { id: 'bible', Icon: BookOpen, label: t('bible') },
     { id: 'playlist', Icon: Headphones, label: t('playlist') },
-    { id: 'saints', Icon: Crown, label: t('saints') },
   ];
 
   const mainTabs = [
@@ -2744,9 +2745,82 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           </React.Fragment>
         ))}
       </div>
-      <button onClick={onLogout} style={{ width: '100%', padding: '14px', background: 'linear-gradient(90deg,#3a0000,#660000)', color: '#ff8888', border: 'none', borderRadius: '14px', fontWeight: '700', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+      {/* Logout button */}
+      <button onClick={() => setShowLogoutConfirm(true)}
+        style={{ width: '100%', padding: '14px', background: 'linear-gradient(90deg,#3a0000,#660000)', color: '#ff8888', border: 'none', borderRadius: '14px', fontWeight: '700', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '10px' }}>
         <IC size={18} color="#ff8888"><LogOut /></IC> {t('signOut')}
       </button>
+
+      {/* Delete account button */}
+      <button onClick={() => setShowDeleteConfirm(true)}
+        style={{ width: '100%', padding: '14px', background: 'transparent', color: '#ff4444', border: '1px solid #ff444444', borderRadius: '14px', fontWeight: '700', cursor: 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+        <IC size={18} color="#ff4444"><X /></IC> ሂሳብ ሰርዝ
+      </button>
+
+      {/* Logout Confirm Modal */}
+      {showLogoutConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+          <div style={{ background: '#1A1508', borderRadius: '24px', padding: '28px 24px', width: '100%', maxWidth: '340px', border: '1px solid #2a2010', textAlign: 'center' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#3a000033', border: '1px solid #ff444444', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <IC size={28} color="#ff8888"><LogOut /></IC>
+            </div>
+            <h3 style={{ color: '#F0E6C8', margin: '0 0 8px', fontSize: '18px' }}>ለመውጣት እርግጠኛ ነዎት?</h3>
+            <p style={{ color: '#666', fontSize: '13px', margin: '0 0 22px', lineHeight: '1.6' }}>
+              ከሂሳብዎ ይወጣሉ። እንደገና login ማድረግ ይኖርብዎታል።
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setShowLogoutConfirm(false)}
+                style={{ flex: 1, padding: '13px', background: '#0D0A06', border: '1px solid #2a2010', borderRadius: '12px', color: '#888', cursor: 'pointer', fontWeight: '600', fontSize: '14px', fontFamily: 'inherit' }}>
+                {t('cancel')}
+              </button>
+              <button onClick={() => { setShowLogoutConfirm(false); onLogout(); }}
+                style={{ flex: 1, padding: '13px', background: 'linear-gradient(90deg,#660000,#3a0000)', border: 'none', borderRadius: '12px', color: '#ff8888', cursor: 'pointer', fontWeight: '700', fontSize: '14px', fontFamily: 'inherit' }}>
+                ውጣ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Confirm Modal */}
+      {showDeleteConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', zIndex: 9000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+          <div style={{ background: '#1A1508', borderRadius: '24px', padding: '28px 24px', width: '100%', maxWidth: '340px', border: '1px solid #ff444433', textAlign: 'center' }}>
+            <div style={{ width: '60px', height: '60px', borderRadius: '50%', background: '#ff000022', border: '1px solid #ff444466', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <X size={28} color="#ff4444" />
+            </div>
+            <h3 style={{ color: '#ff4444', margin: '0 0 8px', fontSize: '18px' }}>ሂሳብ ይሰረዝ?</h3>
+            <p style={{ color: '#666', fontSize: '13px', margin: '0 0 8px', lineHeight: '1.6' }}>
+              ይህ እርምጃ <span style={{ color: '#ff4444', fontWeight: '700' }}>መቀልበስ አይቻልም!</span>
+            </p>
+            <p style={{ color: '#555', fontSize: '12px', margin: '0 0 22px', lineHeight: '1.6' }}>
+              ሁሉም posts፣ comments እና ውሂብዎ ይጠፋሉ።
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setShowDeleteConfirm(false)}
+                style={{ flex: 1, padding: '13px', background: '#0D0A06', border: '1px solid #2a2010', borderRadius: '12px', color: '#888', cursor: 'pointer', fontWeight: '600', fontSize: '14px', fontFamily: 'inherit' }}>
+                {t('cancel')}
+              </button>
+              <button onClick={async () => {
+                  setShowDeleteConfirm(false);
+                  try {
+                    await supabase.from('posts').delete().eq('user_email', user.email);
+                    await supabase.auth.admin?.deleteUser(user.id);
+                    await supabase.auth.signOut();
+                    onLogout();
+                    triggerToast('ሂሳብ ተሰርዟል!');
+                  } catch {
+                    await supabase.auth.signOut();
+                    onLogout();
+                  }
+                }}
+                style={{ flex: 1, padding: '13px', background: 'linear-gradient(90deg,#ff0000,#990000)', border: 'none', borderRadius: '12px', color: '#fff', cursor: 'pointer', fontWeight: '700', fontSize: '14px', fontFamily: 'inherit' }}>
+                ሰርዝ ☠️
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Verify Modal */}
       {showVerifyModal && (
@@ -3029,7 +3103,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
             {t('currentAccount')}
           </div>
         </div>
-        <button onClick={() => { supabase.auth.signOut(); triggerToast('ወጥቷል!'); }}
+        <button onClick={() => setShowLogoutConfirm(true)}
           style={{ background: '#3a000022', border: '1px solid #ff444433', borderRadius: '10px', padding: '7px 12px', color: '#ff8888', cursor: 'pointer', fontSize: '11px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
           <IC size={13} color="#ff8888"><LogOut /></IC> ውጣ
         </button>
@@ -3158,7 +3232,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
                     <span style={{ fontSize: '14px', color: '#F0E6C8' }}>{t('settings')}</span>
                   </div>
                   <div style={{ height: '1px', background: '#2a2010', margin: '12px 0' }}></div>
-                  <div onClick={onLogout} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '13px 12px', borderRadius: '12px', cursor: 'pointer' }}>
+                  <div onClick={() => { setMenuOpen(false); setShowLogoutConfirm(true); }} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '13px 12px', borderRadius: '12px', cursor: 'pointer' }}>
                     <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#3a000022', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <IC size={18} color="#ff6666"><LogOut /></IC>
                     </div>
