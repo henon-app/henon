@@ -1866,11 +1866,11 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
         )}
 
         {/* Video preview + progress */}
-        {selectedLongVideo && (
+        {selectedVideo?.url && (
           <div style={{ marginBottom: '10px', borderRadius: '12px', overflow: 'hidden', background: '#000', position: 'relative' }}>
             {/* Video preview — ወዲያው ይታያል */}
             <video
-              src={selectedVideo.url}
+              src={selectedVideo?.url || ''}
               controls={!videoUploading}
               style={{ width: '100%', maxHeight: '220px', display: 'block', borderRadius: '12px', opacity: videoUploading ? 0.5 : 1 }}
             />
@@ -1899,7 +1899,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
                   <div style={{ height: '100%', width: videoUploadProgress + '%', background: 'linear-gradient(90deg, #B8860B, #FFD700)', borderRadius: '4px', transition: 'width 0.3s ease' }} />
                 </div>
                 <div style={{ color: '#666', fontSize: '10px', marginTop: '6px' }}>
-                  {selectedVideo.name.length > 30 ? selectedVideo.name.slice(0,30) + '...' : selectedVideo.name}
+                  {(selectedVideo?.name || '').length > 30 ? (selectedVideo?.name || '').slice(0,30) + '...' : (selectedVideo?.name || '')}
                 </div>
               </div>
             )}
@@ -1990,6 +1990,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       );
 
       const v = shortVideos[shortIndex] || shortVideos[0];
+      if (!v) return null;
 
       return (
         <div
@@ -2185,12 +2186,12 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           </div>
 
           {/* Selected video player */}
-          {selectedLongVideo && (
+          {selectedLongVideo?.video_url && (
             <div style={{ marginBottom: '16px' }}>
               {/* Video */}
               <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', background: '#000', marginBottom: '12px' }}>
                 <video
-                  src={selectedLongVideo.video_url}
+                  src={selectedLongVideo?.video_url || ''}
                   controls
                   style={{ width: '100%', maxHeight: '240px', display: 'block' }}
                   onPlay={() => setIsPlaying(true)}
