@@ -2405,7 +2405,18 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           <div style={{ display: 'flex', background: '#1A1508', borderRadius: '22px', padding: '3px', border: '1px solid #2a2010' }}>
             {[{ id: 'long', label: '📺 Long' }, { id: 'short', label: '🎬 Short' }].map(tab => (
               <button key={tab.id}
-                onClick={() => { setVideoTab(tab.id); if (tab.id === 'short') setShortIndex(0); }}
+                onClick={() => {
+                  setVideoTab(tab.id);
+                  if (tab.id === 'short') {
+                    setShortIndex(0);
+                    // Pause all playing videos
+                    document.querySelectorAll('video').forEach(v => v.pause());
+                  }
+                  if (tab.id === 'long') {
+                    // Pause short video
+                    document.querySelectorAll('video').forEach(v => v.pause());
+                  }
+                }}
                 style={{ padding: '8px 24px', borderRadius: '18px', border: 'none', cursor: 'pointer', fontWeight: '700', fontSize: '13px', fontFamily: 'inherit', background: videoTab === tab.id ? '#B8860B' : 'transparent', color: videoTab === tab.id ? '#000' : '#666', transition: 'all 0.2s' }}>
                 {tab.label}
               </button>
