@@ -2093,8 +2093,10 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
               onClick={async () => {
                 const liked = videoLikes[v.id];
                 setVideoLikes(prev => ({ ...prev, [v.id]: !liked }));
+                setFeedVideos(prev => prev.map(fv => fv.id === v.id ? { ...fv, likes: Math.max(0, (fv.likes || 0) + (liked ? -1 : 1)) } : fv));
                 if (!liked) {
-                  await supabase.from('reactions').insert([{ post_id: Number(v.id), user_id: user.id, type: 'like' }]).catch(() => {});
+                  const { error } = await supabase.from('reactions').insert([{ post_id: Number(v.id), user_id: user.id, type: 'like' }]);
+                  if (error) console.log('Short like error:', error.message);
                 } else {
                   await supabase.from('reactions').delete().eq('post_id', Number(v.id)).eq('user_id', user.id).eq('type', 'like');
                 }
@@ -2109,9 +2111,11 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
               onClick={async () => {
                 const prayed = videoPrayers[v.id];
                 setVideoPrayers(prev => ({ ...prev, [v.id]: !prayed }));
+                setFeedVideos(prev => prev.map(fv => fv.id === v.id ? { ...fv, prayers: Math.max(0, (fv.prayers || 0) + (prayed ? -1 : 1)) } : fv));
                 triggerToast(t('prayer'));
                 if (!prayed) {
-                  await supabase.from('reactions').insert([{ post_id: Number(v.id), user_id: user.id, type: 'prayer' }]).catch(() => {});
+                  const { error } = await supabase.from('reactions').insert([{ post_id: Number(v.id), user_id: user.id, type: 'prayer' }]);
+                  if (error) console.log('Short prayer error:', error.message);
                 } else {
                   await supabase.from('reactions').delete().eq('post_id', Number(v.id)).eq('user_id', user.id).eq('type', 'prayer');
                 }
@@ -2234,16 +2238,26 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
                       action: async () => {
                         const liked = videoLikes[v.id];
                         setVideoLikes(p => ({ ...p, [v.id]: !liked }));
-                        if (!liked) { await supabase.from('reactions').insert([{ post_id: Number(v.id), user_id: user.id, type: 'like' }]).catch(() => {}); }
-                        else { await supabase.from('reactions').delete().eq('post_id', Number(v.id)).eq('user_id', user.id).eq('type', 'like'); }
+                        setFeedVideos(prev => prev.map(fv => fv.id === v.id ? { ...fv, likes: Math.max(0, (fv.likes || 0) + (liked ? -1 : 1)) } : fv));
+                        if (!liked) {
+                          const { error } = await supabase.from('reactions').insert([{ post_id: Number(v.id), user_id: user.id, type: 'like' }]);
+                          if (error) console.log('Like error:', error.message);
+                        } else {
+                          await supabase.from('reactions').delete().eq('post_id', Number(v.id)).eq('user_id', user.id).eq('type', 'like');
+                        }
                       }},
                     { Icon: HandHeart, label: (v.prayers || 0) + (videoPrayers[v.id] ? 1 : 0), active: videoPrayers[v.id], activeColor: '#B8860B',
                       action: async () => {
                         const prayed = videoPrayers[v.id];
                         setVideoPrayers(p => ({ ...p, [v.id]: !prayed }));
+                        setFeedVideos(prev => prev.map(fv => fv.id === v.id ? { ...fv, prayers: Math.max(0, (fv.prayers || 0) + (prayed ? -1 : 1)) } : fv));
                         triggerToast(t('prayer'));
-                        if (!prayed) { await supabase.from('reactions').insert([{ post_id: Number(v.id), user_id: user.id, type: 'prayer' }]).catch(() => {}); }
-                        else { await supabase.from('reactions').delete().eq('post_id', Number(v.id)).eq('user_id', user.id).eq('type', 'prayer'); }
+                        if (!prayed) {
+                          const { error } = await supabase.from('reactions').insert([{ post_id: Number(v.id), user_id: user.id, type: 'prayer' }]);
+                          if (error) console.log('Prayer error:', error.message);
+                        } else {
+                          await supabase.from('reactions').delete().eq('post_id', Number(v.id)).eq('user_id', user.id).eq('type', 'prayer');
+                        }
                       }},
                     { Icon: MessageCircle, label: 'ኮሜንት', active: false, activeColor: '#888', action: () => triggerToast('ኮሜንቶች') },
                     { Icon: Share2, label: 'አጋራ', active: false, activeColor: '#888', action: () => navigator.share?.({ title: v.text || 'ሄኖን', url: window.location.href }).catch(() => {}) },
