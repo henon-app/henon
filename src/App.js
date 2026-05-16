@@ -1153,6 +1153,56 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
     }
   }, [selectedLongVideo?.id]);
 
+  // Fetch user reactions for all videos
+  useEffect(() => {
+    const fetchVideoReactions = async () => {
+      if (!user?.id || feedVideos.length === 0) return;
+      const ids = feedVideos.map(v => Number(v.id));
+      const { data } = await supabase
+        .from('reactions')
+        .select('post_id, type')
+        .in('post_id', ids)
+        .eq('user_id', user.id);
+      if (data) {
+        const likes = {};
+        const prayers = {};
+        data.forEach(r => {
+          if (r.type === 'like') likes[r.post_id] = true;
+          if (r.type === 'prayer') prayers[r.post_id] = true;
+        });
+        setVideoLikes(likes);
+        setVideoPrayers(prayers);
+      }
+    };
+    fetchVideoReactions();
+  }, [feedVideos, user?.id]);
+
+  // Fetch real like/prayer counts for videos
+  useEffect(() => {
+    const fetchVideoCounts = async () => {
+      if (feedVideos.length === 0) return;
+      const ids = feedVideos.map(v => Number(v.id));
+      const { data } = await supabase
+        .from('reactions')
+        .select('post_id, type')
+        .in('post_id', ids);
+      if (data) {
+        const likeCounts = {};
+        const prayerCounts = {};
+        data.forEach(r => {
+          if (r.type === 'like') likeCounts[r.post_id] = (likeCounts[r.post_id] || 0) + 1;
+          if (r.type === 'prayer') prayerCounts[r.post_id] = (prayerCounts[r.post_id] || 0) + 1;
+        });
+        setFeedVideos(prev => prev.map(v => ({
+          ...v,
+          likes: likeCounts[Number(v.id)] || v.likes || 0,
+          prayers: prayerCounts[Number(v.id)] || v.prayers || 0,
+        })));
+      }
+    };
+    fetchVideoCounts();
+  }, [feedVideos.length]);
+
   // ---- Notifications ----
   const fetchNotifications = useCallback(async () => {
     if (!user?.id) return;
