@@ -2126,7 +2126,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
             <video
               key={v.id}
               src={v.video_url}
-              autoPlay loop playsInline
+              autoPlay={videoTab === 'short'} loop playsInline
               id={"short-vid-" + v.id}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
@@ -2263,8 +2263,13 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           {v?.video_url && (
             <div style={{ marginBottom: '12px' }}>
               <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', background: '#000', marginBottom: '10px' }}>
-                <video src={v.video_url} controls style={{ width: '100%', maxHeight: '240px', display: 'block' }}
-                  onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
+                <video
+                  src={videoTab === 'long' ? v.video_url : ''}
+                  controls
+                  style={{ width: '100%', maxHeight: '240px', display: 'block' }}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                />
                 <div style={{ position: 'absolute', top: '8px', left: '8px', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(0,0,0,0.55)', borderRadius: '8px', padding: '3px 8px' }}>
                   <img src={LOGO_SRC} alt="ሄኖን" style={{ width: '14px', height: '14px', borderRadius: '3px' }} />
                   <span style={{ color: '#B8860B', fontSize: '10px', fontWeight: '700' }}>ሄኖን</span>
