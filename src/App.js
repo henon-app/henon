@@ -2122,13 +2122,31 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           }}>
 
           {/* Full screen video */}
-          <div style={{ position: 'fixed', top: '62px', bottom: '68px', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '430px', background: '#000', zIndex: 95, overflow: 'hidden' }}>
+          <div style={{ position: 'fixed', top: '63px', bottom: '68px', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '430px', background: '#000', zIndex: 95, overflow: 'hidden' }}>
             <video
               key={v.id}
               src={v.video_url}
               autoPlay loop playsInline
+              id={"short-vid-" + v.id}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
             />
+
+            {/* Tap to pause/play */}
+            <div
+              style={{ position: 'absolute', inset: 0, zIndex: 5, cursor: 'pointer' }}
+              onClick={() => {
+                const vid = document.getElementById('short-vid-' + v.id);
+                if (!vid) return;
+                if (vid.paused) { vid.play(); setIsPlaying(true); }
+                else { vid.pause(); setIsPlaying(false); }
+              }}
+            />
+            {/* Pause icon */}
+            {!isPlaying && (
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', zIndex: 6, background: 'rgba(0,0,0,0.55)', borderRadius: '50%', width: '68px', height: '68px', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                <PlayCircle size={38} color="#B8860B" strokeWidth={1.5} />
+              </div>
+            )}
 
             {/* Gradient overlays */}
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 35%, rgba(0,0,0,0.2) 100%)', pointerEvents: 'none' }} />
