@@ -3493,11 +3493,6 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   // ===================== MAIN RENDER =====================
   return (
     <div style={{ backgroundColor: '#0D0A06', minHeight: '100vh', maxWidth: '430px', margin: '0 auto', color: '#F0E6C8', fontFamily: '"Segoe UI", system-ui, sans-serif', position: 'relative', overflowX: 'hidden' }}>
-      {activeTab === 'video' && (
-        <div style={{ paddingTop: '62px', paddingBottom: '80px', paddingLeft: '16px', paddingRight: '16px' }}>
-          {renderVideoFeed()}
-        </div>
-      )}
       {(
         <>
           {/* Header */}
@@ -3820,9 +3815,28 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           )}
 
           {/* Main content */}
+          {/* VIDEO PAGE — between header and nav */}
+          {activeTab === 'video' && (
+            <div style={{
+              position: 'fixed',
+              top: '62px',
+              bottom: '68px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '100%',
+              maxWidth: '430px',
+              overflowY: 'auto',
+              background: BG,
+              zIndex: 90,
+              padding: '16px',
+              boxSizing: 'border-box',
+            }}>
+              {renderVideoFeed()}
+            </div>
+          )}
+
           <main style={{ padding: '16px', paddingBottom: '88px' }}>
             {activeTab === 'home' && renderHome()}
-            {activeTab === 'video' && renderVideoFeed()}
             {activeTab === 'bible' && renderBible()}
             {activeTab === 'live' && renderLive()}
             {activeTab === 'fasting' && renderCalendar()}
