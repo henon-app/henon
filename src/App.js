@@ -2122,7 +2122,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           }}>
 
           {/* Full screen video */}
-          <div style={{ position: 'fixed', top: '63px', bottom: '68px', left: '50%', transform: 'translateX(-50%)', width: '100%', maxWidth: '430px', background: '#000', zIndex: 95, overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: '#000', overflow: 'hidden' }}>
             <video
               key={v.id}
               src={v.video_url}
@@ -3972,16 +3972,16 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           {activeTab === 'video' && (
             <div style={{
               position: 'fixed',
-              top: '62px',
+              top: '63px',
               bottom: '68px',
               left: '50%',
               transform: 'translateX(-50%)',
               width: '100%',
               maxWidth: '430px',
-              overflowY: 'auto',
-              background: BG,
+              overflowY: videoTab === 'short' ? 'hidden' : 'auto',
+              background: videoTab === 'short' ? '#000' : BG,
               zIndex: 90,
-              padding: '16px',
+              padding: videoTab === 'short' ? '0' : '16px',
               boxSizing: 'border-box',
             }}>
               {renderVideoFeed()}
