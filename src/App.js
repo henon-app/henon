@@ -886,6 +886,12 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
 
+  // ---- Video Comment state ----
+  const [videoComments, setVideoComments] = useState([]);
+  const [videoCommentText, setVideoCommentText] = useState('');
+  const [videoCommentLoading, setVideoCommentLoading] = useState(false);
+  const [showVideoComments, setShowVideoComments] = useState(false);
+
   // ---- Video Feed state ----
   const [videoTab, setVideoTab] = useState('long');
   const [feedVideos, setFeedVideos] = useState([]);
@@ -1152,6 +1158,58 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
         .then(() => {});
     }
   }, [selectedLongVideo?.id]);
+
+  // ---- Fetch video comments ----
+  const fetchVideoComments = useCallback(async (videoId) => {
+    if (!videoId) return;
+    const { data } = await supabase
+      .from('comments')
+      .select('*')
+      .eq('post_id', Number(videoId))
+      .order('created_at', { ascending: true });
+    if (data) setVideoComments(data);
+  }, []);
+
+  useEffect(() => {
+    if (selectedLongVideo?.id) {
+      fetchVideoComments(selectedLongVideo.id);
+      setShowVideoComments(false);
+      setVideoCommentText('');
+    }
+  }, [selectedLongVideo?.id, fetchVideoComments]);
+
+  // Real-time video comments
+  useEffect(() => {
+    if (!selectedLongVideo?.id) return;
+    const channel = supabase
+      .channel('video-comments-' + selectedLongVideo.id)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'comments', filter: `post_id=eq.${Number(selectedLongVideo.id)}` },
+        (payload) => {
+          setVideoComments(prev => {
+            if (prev.find(c => c.id === payload.new.id)) return prev;
+            return [...prev, payload.new];
+          });
+        }
+      ).subscribe();
+    return () => supabase.removeChannel(channel);
+  }, [selectedLongVideo?.id]);
+
+  // Send video comment
+  const handleVideoComment = async () => {
+    if (!videoCommentText.trim() || !selectedLongVideo?.id) return;
+    setVideoCommentLoading(true);
+    const { error } = await supabase.from('comments').insert([{
+      content: videoCommentText.trim(),
+      post_id: Number(selectedLongVideo.id),
+      user_id: user?.id || null,
+      user_name: user?.name || 'User',
+      user_avatar: user?.avatar || null,
+    }]);
+    setVideoCommentLoading(false);
+    if (error) { triggerToast('ኮሜንት አልተላከም!'); }
+    else { setVideoCommentText(''); }
+  };
 
   // Fetch user reactions for all videos
   useEffect(() => {
@@ -2259,7 +2317,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
                           await supabase.from('reactions').delete().eq('post_id', Number(v.id)).eq('user_id', user.id).eq('type', 'prayer');
                         }
                       }},
-                    { Icon: MessageCircle, label: 'ኮሜንት', active: false, activeColor: '#888', action: () => triggerToast('ኮሜንቶች') },
+                    { Icon: MessageCircle, label: videoComments.length || 'ኮሜንት', active: showVideoComments, activeColor: '#B8860B', action: () => setShowVideoComments(p => !p) },
                     { Icon: Share2, label: 'አጋራ', active: false, activeColor: '#888', action: () => navigator.share?.({ title: v.text || 'ሄኖን', url: window.location.href }).catch(() => {}) },
                     { Icon: Download, label: 'ወርድ', active: false, activeColor: '#888',
                       action: async () => {
@@ -2279,6 +2337,49 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
                   ))}
                 </div>
               </div>
+
+              {/* Comment Section */}
+              {showVideoComments && (
+                <div style={{ marginTop: '12px', borderTop: '1px solid #2a2010', paddingTop: '12px' }}>
+                  {/* Comment count */}
+                  <p style={{ fontSize: '12px', color: '#666', margin: '0 0 10px', textAlign: 'center' }}>
+                    {videoComments.length === 0 ? 'ኮሜንት የለም — ይጻፉ! ☦️' : `${videoComments.length} ኮሜንቶች`}
+                  </p>
+
+                  {/* Comments list */}
+                  <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '10px' }}>
+                    {videoComments.map(c => (
+                      <div key={c.id} style={{ display: 'flex', gap: '8px', marginBottom: '10px', alignItems: 'flex-start' }}>
+                        <Avatar initials={(c.user_name || 'U').slice(0,2).toUpperCase()} color="#B8860B" size={30} fontSize={11} />
+                        <div style={{ flex: 1, background: '#0D0A06', borderRadius: '10px', padding: '7px 10px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '700', color: '#B8860B', display: 'block' }}>{c.user_name}</span>
+                          <p style={{ margin: 0, fontSize: '12px', color: '#ddd', lineHeight: '1.4' }}>{c.content}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Input */}
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <Avatar initials={userInitials} color="#B8860B" size={30} fontSize={11} />
+                    <div style={{ flex: 1, display: 'flex', gap: '6px', background: '#0D0A06', borderRadius: '18px', padding: '4px 10px', border: '1px solid #2a2010', alignItems: 'center' }}>
+                      <input
+                        value={videoCommentText}
+                        onChange={e => setVideoCommentText(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && !videoCommentLoading && handleVideoComment()}
+                        placeholder="ኮሜንት ይጻፉ..."
+                        style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: '13px', padding: '6px 0', fontFamily: 'inherit' }}
+                      />
+                      <button
+                        onClick={handleVideoComment}
+                        disabled={videoCommentLoading || !videoCommentText.trim()}
+                        style={{ background: 'none', border: 'none', cursor: videoCommentText.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center' }}>
+                        <Send size={16} color={videoCommentText.trim() ? '#B8860B' : '#555'} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
