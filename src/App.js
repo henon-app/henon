@@ -886,6 +886,16 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef(null);
 
+  // ---- Video Feed state ----
+  const [videoTab, setVideoTab] = useState('long');
+  const [feedVideos, setFeedVideos] = useState([]);
+  const [shortIndex, setShortIndex] = useState(0);
+  const [videoLikes, setVideoLikes] = useState({});
+  const [videoPrayers, setVideoPrayers] = useState({});
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [selectedLongVideo, setSelectedLongVideo] = useState(null);
+  const touchStartY = useRef(null);
+
   // ---- Notifications state ----
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -1115,6 +1125,23 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
     }
     if (storyInputRef.current) storyInputRef.current.value = '';
   };
+
+  // ---- Fetch Videos ----
+  const fetchFeedVideos = useCallback(async () => {
+    setVideoLoading(true);
+    const { data } = await supabase
+      .from('posts')
+      .select('*')
+      .not('video_url', 'is', null)
+      .order('created_at', { ascending: false });
+    if (data) {
+      setFeedVideos(data);
+      if (data.length > 0) setSelectedLongVideo(data[0]);
+    }
+    setVideoLoading(false);
+  }, []);
+
+  useEffect(() => { fetchFeedVideos(); }, [fetchFeedVideos]);
 
   // ---- Notifications ----
   const fetchNotifications = useCallback(async () => {
@@ -1565,7 +1592,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
     const file = e.target.files[0];
     if (!file) return;
     const previewUrl = URL.createObjectURL(file);
-    setSelectedVideo({ url: previewUrl, file, name: file.name });
+    setSelectedLongVideo({ url: previewUrl, file, name: file.name });
   };
 
   const handlePost = async () => {
@@ -1627,7 +1654,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       setPosts(prev => [{ ...data[0], time: 'አሁን', views: '1' }, ...prev]);
       setNewPost('');
       setSelectedPhoto(null);
-      setSelectedVideo(null);
+      setSelectedLongVideo(null);
       setVideoUploadProgress(0);
       if (photoInputRef.current) photoInputRef.current.value = '';
       if (videoInputRef.current) videoInputRef.current.value = '';
@@ -1839,7 +1866,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
         )}
 
         {/* Video preview + progress */}
-        {selectedVideo && (
+        {selectedLongVideo && (
           <div style={{ marginBottom: '10px', borderRadius: '12px', overflow: 'hidden', background: '#000', position: 'relative' }}>
             {/* Video preview — ወዲያው ይታያል */}
             <video
@@ -1851,7 +1878,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
             {/* X button — upload እየሆነ ካልሆነ ብቻ */}
             {!videoUploading && (
               <button
-                onClick={() => { setSelectedVideo(null); setVideoUploadProgress(0); if (videoInputRef.current) videoInputRef.current.value = ''; }}
+                onClick={() => { setSelectedLongVideo(null); setVideoUploadProgress(0); if (videoInputRef.current) videoInputRef.current.value = ''; }}
                 style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.75)', border: 'none', borderRadius: '50%', width: '30px', height: '30px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                 <X size={14} color="#fff" />
               </button>
@@ -1944,31 +1971,8 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 
   // ===================== RENDER VIDEO FEED =====================
   const renderVideoFeed = () => {
-    const [videoTab, setVideoTab] = React.useState('long');
-    const [videos, setVideos] = React.useState([]);
-    const [shortIndex, setShortIndex] = React.useState(0);
-    const [videoLikes, setVideoLikes] = React.useState({});
-    const [videoPrayers, setVideoPrayers] = React.useState({});
-    const [videoLoading, setVideoLoading] = React.useState(true);
-    const touchStartY = React.useRef(null);
-
-    // Fetch videos from Supabase
-    React.useEffect(() => {
-      const fetchVideos = async () => {
-        setVideoLoading(true);
-        const { data } = await supabase
-          .from('posts')
-          .select('*')
-          .not('video_url', 'is', null)
-          .order('created_at', { ascending: false });
-        if (data) setVideos(data);
-        setVideoLoading(false);
-      };
-      fetchVideos();
-    }, []);
-
-    const shortVideos = videos;
-    const longVideos = videos;
+        const shortVideos = feedVideos;
+    const longVideos = feedVideos;
 
     // ---- SHORT VIDEO (TikTok style) ----
     const renderShort = () => {
@@ -2151,8 +2155,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 
     // ---- LONG VIDEO (YouTube style) ----
     const renderLong = () => {
-      const [selectedVideo, setSelectedVideo] = React.useState(longVideos[0] || null);
-      const [playing, setPlaying] = React.useState(false);
+
 
       if (videoLoading) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px', color: '#B8860B' }}>
@@ -2182,44 +2185,44 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           </div>
 
           {/* Selected video player */}
-          {selectedVideo && (
+          {selectedLongVideo && (
             <div style={{ marginBottom: '16px' }}>
               {/* Video */}
               <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', background: '#000', marginBottom: '12px' }}>
                 <video
-                  src={selectedVideo.video_url}
+                  src={selectedLongVideo.video_url}
                   controls
                   style={{ width: '100%', maxHeight: '240px', display: 'block' }}
-                  onPlay={() => setPlaying(true)}
-                  onPause={() => setPlaying(false)}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
                 />
                 {/* Henon watermark */}
                 <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.5)', borderRadius: '10px', padding: '4px 8px' }}>
                   <img src={LOGO_SRC} alt="ሄኖን" style={{ width: '16px', height: '16px', borderRadius: '4px' }} />
                   <span style={{ color: '#B8860B', fontSize: '10px', fontWeight: '700' }}>ሄኖን</span>
                 </div>
-                {selectedVideo.file_size && (
+                {selectedLongVideo.file_size && (
                   <div style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '2px 8px', fontSize: '10px', color: '#B8860B' }}>
-                    {selectedVideo.file_size} MB
+                    {selectedLongVideo.file_size} MB
                   </div>
                 )}
               </div>
 
               {/* Video info */}
               <div style={{ background: '#1A1508', borderRadius: '16px', padding: '14px', border: '1px solid #2a2010' }}>
-                {selectedVideo.text && (
-                  <h3 style={{ margin: '0 0 10px', fontSize: '15px', color: '#F0E6C8', lineHeight: '1.4' }}>{selectedVideo.text}</h3>
+                {selectedLongVideo.text && (
+                  <h3 style={{ margin: '0 0 10px', fontSize: '15px', color: '#F0E6C8', lineHeight: '1.4' }}>{selectedLongVideo.text}</h3>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Avatar initials={selectedVideo.initials || 'U'} color={selectedVideo.color || '#B8860B'} size={36} />
+                    <Avatar initials={selectedLongVideo.initials || 'U'} color={selectedLongVideo.color || '#B8860B'} size={36} />
                     <div>
                       <div style={{ fontWeight: '700', fontSize: '13px', color: '#F0E6C8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {selectedVideo.author}
-                        {VERIFIED_USERS.includes(selectedVideo.author) && <BadgeCheck size={12} color="#B8860B" />}
+                        {selectedLongVideo.author}
+                        {VERIFIED_USERS.includes(selectedLongVideo.author) && <BadgeCheck size={12} color="#B8860B" />}
                       </div>
-                      {selectedVideo.view_count > 0 && (
-                        <div style={{ fontSize: '11px', color: '#666' }}>{selectedVideo.view_count.toLocaleString()} እይታዎች</div>
+                      {selectedLongVideo.view_count > 0 && (
+                        <div style={{ fontSize: '11px', color: '#666' }}>{selectedLongVideo.view_count.toLocaleString()} እይታዎች</div>
                       )}
                     </div>
                   </div>
@@ -2231,13 +2234,13 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
                 {/* Action buttons */}
                 <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none' }}>
                   {[
-                    { Icon: Heart, label: (selectedVideo.likes || 0) + (videoLikes[selectedVideo.id] ? 1 : 0), color: videoLikes[selectedVideo.id] ? '#ff4500' : '#888', action: () => setVideoLikes(p => ({ ...p, [selectedVideo.id]: !p[selectedVideo.id] })) },
-                    { Icon: HandHeart, label: (selectedVideo.prayers || 0) + (videoPrayers[selectedVideo.id] ? 1 : 0), color: videoPrayers[selectedVideo.id] ? '#B8860B' : '#888', action: () => { setVideoPrayers(p => ({ ...p, [selectedVideo.id]: !p[selectedVideo.id] })); triggerToast(t('prayer')); } },
+                    { Icon: Heart, label: (selectedLongVideo.likes || 0) + (videoLikes[selectedLongVideo.id] ? 1 : 0), color: videoLikes[selectedLongVideo.id] ? '#ff4500' : '#888', action: () => setVideoLikes(p => ({ ...p, [selectedLongVideo.id]: !p[selectedLongVideo.id] })) },
+                    { Icon: HandHeart, label: (selectedLongVideo.prayers || 0) + (videoPrayers[selectedLongVideo.id] ? 1 : 0), color: videoPrayers[selectedLongVideo.id] ? '#B8860B' : '#888', action: () => { setVideoPrayers(p => ({ ...p, [selectedLongVideo.id]: !p[selectedLongVideo.id] })); triggerToast(t('prayer')); } },
                     { Icon: MessageCircle, label: 'ኮሜንት', color: '#888', action: () => triggerToast('አስተያየቶች') },
-                    { Icon: Share2, label: 'አጋራ', color: '#888', action: () => navigator.share?.({ title: selectedVideo.text || 'ሄኖን', url: window.location.href }) },
+                    { Icon: Share2, label: 'አጋራ', color: '#888', action: () => navigator.share?.({ title: selectedLongVideo.text || 'ሄኖን', url: window.location.href }) },
                     { Icon: Download, label: 'ወርድ', color: '#888', action: async () => {
                       try {
-                        const res = await fetch(selectedVideo.video_url);
+                        const res = await fetch(selectedLongVideo.video_url);
                         const blob = await res.blob();
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a'); a.href = url; a.download = 'henon-video.mp4'; a.click();
@@ -2259,8 +2262,8 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           <h4 style={{ color: '#B8860B', margin: '0 0 12px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Clapperboard size={16} color="#B8860B" strokeWidth={1.8} /> ሌሎች ቪዲዮዎች
           </h4>
-          {longVideos.filter(v => v.id !== selectedVideo?.id).map((v, i) => (
-            <div key={v.id} onClick={() => { setSelectedVideo(v); window.scrollTo(0, 0); }}
+          {longVideos.filter(v => v.id !== selectedLongVideo?.id).map((v, i) => (
+            <div key={v.id} onClick={() => { setSelectedLongVideo(v); window.scrollTo(0, 0); }}
               style={{ display: 'flex', gap: '10px', marginBottom: '12px', cursor: 'pointer', background: '#1A1508', borderRadius: '14px', padding: '10px', border: '1px solid #2a2010' }}>
               {/* Thumbnail */}
               <div style={{ width: '120px', height: '72px', background: '#0D0A06', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #2a2010', position: 'relative', overflow: 'hidden' }}>
