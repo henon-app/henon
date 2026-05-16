@@ -1953,6 +1953,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       {/* Posts feed */}
       {posts
         .filter(p => !searchQuery || p.text?.toLowerCase().includes(searchQuery.toLowerCase()))
+        .filter(p => p.type !== 'video')
         .map(p => (
           <PostCard
             key={p.id}
@@ -2053,7 +2054,15 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 
             {/* Like */}
             <div style={{ textAlign: 'center', cursor: 'pointer' }}
-              onClick={() => setVideoLikes(prev => ({ ...prev, [v.id]: !prev[v.id] }))}>
+              onClick={async () => {
+                const liked = videoLikes[v.id];
+                setVideoLikes(prev => ({ ...prev, [v.id]: !liked }));
+                if (!liked) {
+                  await supabase.from('reactions').insert([{ post_id: Number(v.id), user_id: user.id, type: 'like' }]).catch(() => {});
+                } else {
+                  await supabase.from('reactions').delete().eq('post_id', Number(v.id)).eq('user_id', user.id).eq('type', 'like');
+                }
+              }}>
               <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: videoLikes[v.id] ? '1px solid #ff4500' : '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Heart size={22} color={videoLikes[v.id] ? '#ff4500' : '#fff'} fill={videoLikes[v.id] ? '#ff4500' : 'none'} strokeWidth={1.8} />
               </div>
@@ -2062,7 +2071,16 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 
             {/* Prayer */}
             <div style={{ textAlign: 'center', cursor: 'pointer' }}
-              onClick={() => { setVideoPrayers(prev => ({ ...prev, [v.id]: !prev[v.id] })); triggerToast(t('prayer')); }}>
+              onClick={async () => {
+                const prayed = videoPrayers[v.id];
+                setVideoPrayers(prev => ({ ...prev, [v.id]: !prayed }));
+                triggerToast(t('prayer'));
+                if (!prayed) {
+                  await supabase.from('reactions').insert([{ post_id: Number(v.id), user_id: user.id, type: 'prayer' }]).catch(() => {});
+                } else {
+                  await supabase.from('reactions').delete().eq('post_id', Number(v.id)).eq('user_id', user.id).eq('type', 'prayer');
+                }
+              }}>
               <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: videoPrayers[v.id] ? '1px solid #B8860B' : '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <HandHeart size={22} color={videoPrayers[v.id] ? '#B8860B' : '#fff'} strokeWidth={1.8} />
               </div>
@@ -2156,7 +2174,15 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 
     // ---- LONG VIDEO (YouTube style) ----
     const renderLong = () => {
-
+      // Increment view count
+      React.useEffect(() => {
+        if (selectedLongVideo?.id) {
+          supabase.from('posts')
+            .update({ view_count: (selectedLongVideo.view_count || 0) + 1 })
+            .eq('id', selectedLongVideo.id)
+            .then(() => {});
+        }
+      }, [selectedLongVideo?.id]);
 
       if (videoLoading) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px', color: '#B8860B' }}>
@@ -2235,8 +2261,27 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
                 {/* Action buttons */}
                 <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none' }}>
                   {[
-                    { Icon: Heart, label: (selectedLongVideo.likes || 0) + (videoLikes[selectedLongVideo.id] ? 1 : 0), color: videoLikes[selectedLongVideo.id] ? '#ff4500' : '#888', action: () => setVideoLikes(p => ({ ...p, [selectedLongVideo.id]: !p[selectedLongVideo.id] })) },
-                    { Icon: HandHeart, label: (selectedLongVideo.prayers || 0) + (videoPrayers[selectedLongVideo.id] ? 1 : 0), color: videoPrayers[selectedLongVideo.id] ? '#B8860B' : '#888', action: () => { setVideoPrayers(p => ({ ...p, [selectedLongVideo.id]: !p[selectedLongVideo.id] })); triggerToast(t('prayer')); } },
+                    { Icon: Heart, label: (selectedLongVideo.likes || 0) + (videoLikes[selectedLongVideo.id] ? 1 : 0), color: videoLikes[selectedLongVideo.id] ? '#ff4500' : '#888', action: async () => {
+                        const liked = videoLikes[selectedLongVideo.id];
+                        setVideoLikes(p => ({ ...p, [selectedLongVideo.id]: !liked }));
+                        if (!liked) {
+                          await supabase.from('reactions').insert([{ post_id: Number(selectedLongVideo.id), user_id: user.id, type: 'like' }]).catch(() => {});
+                          await supabase.from('posts').update({ likes: (selectedLongVideo.likes || 0) + 1 }).eq('id', selectedLongVideo.id);
+                        } else {
+                          await supabase.from('reactions').delete().eq('post_id', Number(selectedLongVideo.id)).eq('user_id', user.id).eq('type', 'like');
+                        }
+                      }},
+                    { Icon: HandHeart, label: (selectedLongVideo.prayers || 0) + (videoPrayers[selectedLongVideo.id] ? 1 : 0), color: videoPrayers[selectedLongVideo.id] ? '#B8860B' : '#888', action: async () => {
+                        const prayed = videoPrayers[selectedLongVideo.id];
+                        setVideoPrayers(p => ({ ...p, [selectedLongVideo.id]: !prayed }));
+                        triggerToast(t('prayer'));
+                        if (!prayed) {
+                          await supabase.from('reactions').insert([{ post_id: Number(selectedLongVideo.id), user_id: user.id, type: 'prayer' }]).catch(() => {});
+                          await supabase.from('posts').update({ prayers: (selectedLongVideo.prayers || 0) + 1 }).eq('id', selectedLongVideo.id);
+                        } else {
+                          await supabase.from('reactions').delete().eq('post_id', Number(selectedLongVideo.id)).eq('user_id', user.id).eq('type', 'prayer');
+                        }
+                      }},
                     { Icon: MessageCircle, label: 'ኮሜንት', color: '#888', action: () => triggerToast('አስተያየቶች') },
                     { Icon: Share2, label: 'አጋራ', color: '#888', action: () => navigator.share?.({ title: selectedLongVideo.text || 'ሄኖን', url: window.location.href }) },
                     { Icon: Download, label: 'ወርድ', color: '#888', action: async () => {
@@ -3524,7 +3569,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   return (
     <div style={{ backgroundColor: '#0D0A06', minHeight: '100vh', maxWidth: '430px', margin: '0 auto', color: '#F0E6C8', fontFamily: '"Segoe UI", system-ui, sans-serif', position: 'relative', overflowX: 'hidden' }}>
       {activeTab === 'video' && renderVideoFeed()}
-      {activeTab !== 'video' && (
+      {(
         <>
           {/* Header */}
           <header style={{ backgroundColor: 'rgba(13,10,6,0.97)', backdropFilter: 'blur(20px)', padding: '14px 16px', borderBottom: '1px solid #2a2010', position: 'sticky', top: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
