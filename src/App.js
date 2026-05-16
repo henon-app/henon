@@ -2249,7 +2249,7 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
     return (
       <div style={{ paddingBottom: '20px' }}>
         {/* Tab switcher */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px', position: 'sticky', top: '62px', zIndex: 50, paddingTop: '8px', background: BG }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
           <div style={{ display: 'flex', background: '#1A1508', borderRadius: '22px', padding: '3px', border: '1px solid #2a2010' }}>
             {[{ id: 'long', label: '📺 Long' }, { id: 'short', label: '🎬 Short' }].map(tab => (
               <button key={tab.id} onClick={() => { setVideoTab(tab.id); setShortIndex(0); }}
@@ -3493,7 +3493,11 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
   // ===================== MAIN RENDER =====================
   return (
     <div style={{ backgroundColor: '#0D0A06', minHeight: '100vh', maxWidth: '430px', margin: '0 auto', color: '#F0E6C8', fontFamily: '"Segoe UI", system-ui, sans-serif', position: 'relative', overflowX: 'hidden' }}>
-      {activeTab === 'video' && renderVideoFeed()}
+      {activeTab === 'video' && (
+        <div style={{ paddingTop: '62px', paddingBottom: '80px', paddingLeft: '16px', paddingRight: '16px' }}>
+          {renderVideoFeed()}
+        </div>
+      )}
       {(
         <>
           {/* Header */}
