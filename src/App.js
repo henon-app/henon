@@ -1982,30 +1982,32 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 
   // ===================== RENDER VIDEO FEED =====================
   const renderVideoFeed = () => {
-        const shortVideos = feedVideos;
+    // Short videos = 3-4 minutes max (240 seconds)
+    const shortVideos = feedVideos.filter(v => {
+      // If no duration info, include all for short
+      return true;
+    });
     const longVideos = feedVideos;
 
     // ---- SHORT VIDEO (TikTok style) ----
     const renderShort = () => {
       if (videoLoading) return (
-        <div style={{ position: 'fixed', inset: 0, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
           <div style={{ width: '36px', height: '36px', border: '3px solid #333', borderTop: '3px solid #B8860B', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
         </div>
       );
-
       if (shortVideos.length === 0) return (
-        <div style={{ position: 'fixed', inset: 0, background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
-          <CrossIcon size={48} color="#B8860B" />
-          <p style={{ color: '#666', marginTop: '16px' }}>ቪዲዮ እስካሁን የለም</p>
+        <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+          <CrossIcon size={48} color="#2a2010" />
+          <p style={{ color: '#666', marginTop: '16px', fontSize: '14px' }}>አጫጭር ቪዲዮ እስካሁን የለም</p>
         </div>
       );
-
       const v = shortVideos[shortIndex] || shortVideos[0];
       if (!v) return null;
 
       return (
         <div
-          style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: '#000', zIndex: 10, touchAction: 'none' }}
+          style={{ position: 'relative', width: '100%', background: '#000', borderRadius: '16px', overflow: 'hidden', marginBottom: '16px' }}
           onTouchStart={e => { touchStartY.current = e.touches[0].clientY; }}
           onTouchEnd={e => {
             if (!touchStartY.current) return;
@@ -2019,49 +2021,23 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           <video
             key={v.id}
             src={v.video_url}
-            autoPlay loop playsInline
-            style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
+            autoPlay loop playsInline controls
+            style={{ width: '100%', maxHeight: '480px', display: 'block', objectFit: 'cover' }}
           />
 
-          {/* Dark gradient overlay */}
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 40%, rgba(0,0,0,0.3) 100%)' }} />
+          {/* Overlay gradient */}
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: '200px', background: 'linear-gradient(transparent, rgba(0,0,0,0.85))' }} />
 
-          {/* Top bar */}
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 20 }}>
-            {/* Henon logo */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <img src={LOGO_SRC} alt="ሄኖን" style={{ width: '28px', height: '28px', borderRadius: '8px', objectFit: 'contain' }} />
-              <span style={{ color: '#B8860B', fontWeight: '800', fontSize: '16px', letterSpacing: '1px' }}>ሄኖን</span>
-            </div>
-            {/* Tab switcher */}
-            <div style={{ display: 'flex', background: 'rgba(0,0,0,0.5)', borderRadius: '20px', padding: '3px', border: '1px solid rgba(184,134,11,0.3)' }}>
-              {['long', 'short'].map(tab => (
-                <button key={tab} onClick={() => setVideoTab(tab)}
-                  style={{ padding: '6px 16px', borderRadius: '16px', border: 'none', cursor: 'pointer', fontWeight: '700', fontSize: '13px', fontFamily: 'inherit', background: videoTab === tab ? '#B8860B' : 'transparent', color: videoTab === tab ? '#000' : 'rgba(255,255,255,0.7)', transition: 'all 0.2s' }}>
-                  {tab === 'long' ? 'Long' : 'Short'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Progress indicators */}
-          <div style={{ position: 'absolute', top: '70px', left: '12px', right: '12px', display: 'flex', gap: '3px', zIndex: 20 }}>
+          {/* Progress dots */}
+          <div style={{ position: 'absolute', top: '10px', left: '12px', right: '12px', display: 'flex', gap: '3px' }}>
             {shortVideos.map((_, i) => (
               <div key={i} onClick={() => setShortIndex(i)}
-                style={{ flex: 1, height: '2px', borderRadius: '2px', background: i === shortIndex ? '#B8860B' : 'rgba(255,255,255,0.3)', cursor: 'pointer', transition: 'background 0.2s' }} />
+                style={{ flex: 1, height: '2px', borderRadius: '2px', background: i === shortIndex ? '#B8860B' : 'rgba(255,255,255,0.3)', cursor: 'pointer' }} />
             ))}
           </div>
 
-          {/* Right side actions */}
-          <div style={{ position: 'absolute', right: '12px', bottom: '120px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '18px', zIndex: 20 }}>
-            {/* Avatar */}
-            <div style={{ position: 'relative' }}>
-              <Avatar initials={v.initials || 'U'} color={v.color || '#B8860B'} size={44} />
-              <div style={{ position: 'absolute', bottom: '-6px', left: '50%', transform: 'translateX(-50%)', background: '#B8860B', borderRadius: '50%', width: '18px', height: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Plus size={12} color="#000" strokeWidth={2.5} />
-              </div>
-            </div>
-
+          {/* Right actions */}
+          <div style={{ position: 'absolute', right: '10px', bottom: '80px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
             {/* Like */}
             <div style={{ textAlign: 'center', cursor: 'pointer' }}
               onClick={async () => {
@@ -2073,12 +2049,11 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
                   await supabase.from('reactions').delete().eq('post_id', Number(v.id)).eq('user_id', user.id).eq('type', 'like');
                 }
               }}>
-              <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: videoLikes[v.id] ? '1px solid #ff4500' : '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Heart size={22} color={videoLikes[v.id] ? '#ff4500' : '#fff'} fill={videoLikes[v.id] ? '#ff4500' : 'none'} strokeWidth={1.8} />
+              <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: `1px solid ${videoLikes[v.id] ? '#ff4500' : 'rgba(255,255,255,0.3)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Heart size={20} color={videoLikes[v.id] ? '#ff4500' : '#fff'} fill={videoLikes[v.id] ? '#ff4500' : 'none'} strokeWidth={1.8} />
               </div>
-              <div style={{ fontSize: '11px', color: '#fff', marginTop: '4px', fontWeight: '600' }}>{(v.likes || 0) + (videoLikes[v.id] ? 1 : 0)}</div>
+              <div style={{ fontSize: '10px', color: '#fff', marginTop: '3px' }}>{(v.likes || 0) + (videoLikes[v.id] ? 1 : 0)}</div>
             </div>
-
             {/* Prayer */}
             <div style={{ textAlign: 'center', cursor: 'pointer' }}
               onClick={async () => {
@@ -2091,29 +2066,19 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
                   await supabase.from('reactions').delete().eq('post_id', Number(v.id)).eq('user_id', user.id).eq('type', 'prayer');
                 }
               }}>
-              <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: videoPrayers[v.id] ? '1px solid #B8860B' : '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <HandHeart size={22} color={videoPrayers[v.id] ? '#B8860B' : '#fff'} strokeWidth={1.8} />
+              <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: `1px solid ${videoPrayers[v.id] ? '#B8860B' : 'rgba(255,255,255,0.3)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <HandHeart size={20} color={videoPrayers[v.id] ? '#B8860B' : '#fff'} strokeWidth={1.8} />
               </div>
-              <div style={{ fontSize: '11px', color: '#fff', marginTop: '4px', fontWeight: '600' }}>{(v.prayers || 0) + (videoPrayers[v.id] ? 1 : 0)}</div>
+              <div style={{ fontSize: '10px', color: '#fff', marginTop: '3px' }}>{(v.prayers || 0) + (videoPrayers[v.id] ? 1 : 0)}</div>
             </div>
-
-            {/* Comment */}
-            <div style={{ textAlign: 'center', cursor: 'pointer' }} onClick={() => triggerToast('አስተያየቶች')}>
-              <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <MessageCircle size={22} color="#fff" strokeWidth={1.8} />
-              </div>
-              <div style={{ fontSize: '11px', color: '#fff', marginTop: '4px', fontWeight: '600' }}>ኮሜንት</div>
-            </div>
-
             {/* Share */}
             <div style={{ textAlign: 'center', cursor: 'pointer' }}
-              onClick={() => { navigator.share?.({ title: v.text || 'ሄኖን', url: window.location.href }); }}>
-              <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Share2 size={22} color="#fff" strokeWidth={1.8} />
+              onClick={() => { navigator.share?.({ title: v.text || 'ሄኖን', url: window.location.href }).catch(() => {}); }}>
+              <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Share2 size={20} color="#fff" strokeWidth={1.8} />
               </div>
-              <div style={{ fontSize: '11px', color: '#fff', marginTop: '4px', fontWeight: '600' }}>አጋራ</div>
+              <div style={{ fontSize: '10px', color: '#fff', marginTop: '3px' }}>አጋራ</div>
             </div>
-
             {/* Download */}
             <div style={{ textAlign: 'center', cursor: 'pointer' }}
               onClick={async () => {
@@ -2121,63 +2086,39 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
                   const res = await fetch(v.video_url);
                   const blob = await res.blob();
                   const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a'); a.href = url; a.download = 'henon-video.mp4'; a.click();
+                  const a = document.createElement('a'); a.href = url; a.download = 'henon.mp4'; a.click();
                   URL.revokeObjectURL(url); triggerToast('⬇️ ወረደ!');
                 } catch { triggerToast('Download አልተቻለም!'); }
               }}>
-              <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Download size={22} color="#fff" strokeWidth={1.8} />
+              <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Download size={20} color="#fff" strokeWidth={1.8} />
               </div>
-              <div style={{ fontSize: '11px', color: '#fff', marginTop: '4px', fontWeight: '600' }}>ወርድ</div>
+              <div style={{ fontSize: '10px', color: '#fff', marginTop: '3px' }}>ወርድ</div>
             </div>
-
-            {/* Henon cross */}
-            <CrossIcon size={24} color="#B8860B" />
           </div>
 
           {/* Bottom info */}
-          <div style={{ position: 'absolute', bottom: '20px', left: '12px', right: '70px', zIndex: 20 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-              <Avatar initials={v.initials || 'U'} color={v.color || '#B8860B'} size={32} />
-              <span style={{ fontWeight: '700', fontSize: '14px', color: '#fff' }}>{v.author}</span>
-              {VERIFIED_USERS.includes(v.author) && <BadgeCheck size={14} color="#B8860B" />}
+          <div style={{ position: 'absolute', bottom: '12px', left: '12px', right: '70px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
+              <Avatar initials={v.initials || 'U'} color={v.color || '#B8860B'} size={30} />
+              <span style={{ fontWeight: '700', fontSize: '13px', color: '#fff' }}>{v.author}</span>
+              {VERIFIED_USERS.includes(v.author) && <BadgeCheck size={13} color="#B8860B" />}
             </div>
-            {v.text && (
-              <p style={{ margin: '0 0 8px', fontSize: '13px', color: 'rgba(255,255,255,0.9)', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                {v.text}
-              </p>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              {v.view_count > 0 && (
-                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Eye size={11} color="rgba(255,255,255,0.6)" /> {v.view_count.toLocaleString()} እይታ
-                </span>
-              )}
-              {v.file_size && <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }}>{v.file_size} MB</span>}
-            </div>
-            {/* Swipe hint */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '8px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                {shortIndex > 0 && <ChevronUp size={14} color="rgba(255,255,255,0.4)" />}
-                {shortIndex < shortVideos.length - 1 && <ChevronDown size={14} color="rgba(255,255,255,0.4)" />}
-              </div>
-              <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.4)' }}>ለቀጣይ ጥረት {shortIndex + 1}/{shortVideos.length}</span>
-            </div>
+            {v.text && <p style={{ margin: 0, fontSize: '12px', color: 'rgba(255,255,255,0.85)', lineHeight: '1.4' }}>{v.text.slice(0, 60)}{v.text.length > 60 ? '...' : ''}</p>}
+            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>{shortIndex + 1} / {shortVideos.length}</div>
           </div>
 
-          {/* Navigation arrows */}
-          {shortIndex > 0 && (
-            <button onClick={() => setShortIndex(i => i - 1)}
-              style={{ position: 'absolute', left: '50%', top: '80px', transform: 'translateX(-50%)', background: 'rgba(184,134,11,0.3)', border: '1px solid rgba(184,134,11,0.5)', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 20 }}>
-              <ChevronUp size={18} color="#B8860B" />
+          {/* Navigation buttons */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', padding: '10px', background: '#0D0A06' }}>
+            <button onClick={() => shortIndex > 0 && setShortIndex(i => i - 1)}
+              style={{ background: shortIndex > 0 ? '#1A1508' : '#0D0A06', border: `1px solid ${shortIndex > 0 ? '#B8860B44' : '#2a2010'}`, borderRadius: '20px', padding: '7px 20px', color: shortIndex > 0 ? '#B8860B' : '#333', cursor: shortIndex > 0 ? 'pointer' : 'default', fontSize: '12px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <ChevronUp size={14} color={shortIndex > 0 ? '#B8860B' : '#333'} /> ቀዳሚ
             </button>
-          )}
-          {shortIndex < shortVideos.length - 1 && (
-            <button onClick={() => setShortIndex(i => i + 1)}
-              style={{ position: 'absolute', left: '50%', bottom: '15px', transform: 'translateX(-50%)', background: 'rgba(184,134,11,0.3)', border: '1px solid rgba(184,134,11,0.5)', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 20 }}>
-              <ChevronDown size={18} color="#B8860B" />
+            <button onClick={() => shortIndex < shortVideos.length - 1 && setShortIndex(i => i + 1)}
+              style={{ background: shortIndex < shortVideos.length - 1 ? '#B8860B' : '#0D0A06', border: `1px solid ${shortIndex < shortVideos.length - 1 ? '#B8860B' : '#2a2010'}`, borderRadius: '20px', padding: '7px 20px', color: shortIndex < shortVideos.length - 1 ? '#000' : '#333', cursor: shortIndex < shortVideos.length - 1 ? 'pointer' : 'default', fontSize: '12px', fontFamily: 'inherit', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '5px' }}>
+              ቀጣይ <ChevronDown size={14} color={shortIndex < shortVideos.length - 1 ? '#000' : '#333'} />
             </button>
-          )}
+          </div>
         </div>
       );
     };
@@ -2185,11 +2126,10 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
     // ---- LONG VIDEO (YouTube style) ----
     const renderLong = () => {
       if (videoLoading) return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px', color: '#B8860B' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px' }}>
           <div style={{ width: '36px', height: '36px', border: '3px solid #2a2010', borderTop: '3px solid #B8860B', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
         </div>
       );
-
       if (longVideos.length === 0) return (
         <div style={{ textAlign: 'center', padding: '80px 20px' }}>
           <CrossIcon size={48} color="#2a2010" />
@@ -2197,106 +2137,80 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
         </div>
       );
 
-      return (
-        <div style={{ paddingBottom: '80px' }}>
-          {/* Tab switcher */}
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', background: '#1A1508', borderRadius: '20px', padding: '3px', border: '1px solid #2a2010' }}>
-              {['long', 'short'].map(tab => (
-                <button key={tab} onClick={() => setVideoTab(tab)}
-                  style={{ padding: '7px 22px', borderRadius: '16px', border: 'none', cursor: 'pointer', fontWeight: '700', fontSize: '13px', fontFamily: 'inherit', background: videoTab === tab ? '#B8860B' : 'transparent', color: videoTab === tab ? '#000' : '#666', transition: 'all 0.2s' }}>
-                  {tab === 'long' ? '📺 Long' : '🎬 Short'}
-                </button>
-              ))}
-            </div>
-          </div>
+      const v = selectedLongVideo || longVideos[0];
 
-          {/* Selected video player */}
-          {selectedLongVideo?.video_url && (
-            <div style={{ marginBottom: '16px' }}>
-              {/* Video */}
-              <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', background: '#000', marginBottom: '12px' }}>
+      return (
+        <div style={{ paddingBottom: '20px' }}>
+          {/* Video player */}
+          {v?.video_url && (
+            <div style={{ marginBottom: '12px' }}>
+              <div style={{ position: 'relative', borderRadius: '16px', overflow: 'hidden', background: '#000', marginBottom: '10px' }}>
                 <video
-                  src={selectedLongVideo?.video_url || ''}
+                  src={v.video_url}
                   controls
                   style={{ width: '100%', maxHeight: '240px', display: 'block' }}
-                  onPlay={() => setIsPlaying(true)}
-                  onPause={() => setIsPlaying(false)}
                 />
-                {/* Henon watermark */}
-                <div style={{ position: 'absolute', top: '10px', left: '10px', display: 'flex', alignItems: 'center', gap: '5px', background: 'rgba(0,0,0,0.5)', borderRadius: '10px', padding: '4px 8px' }}>
-                  <img src={LOGO_SRC} alt="ሄኖን" style={{ width: '16px', height: '16px', borderRadius: '4px' }} />
+                {/* Watermark */}
+                <div style={{ position: 'absolute', top: '8px', left: '8px', display: 'flex', alignItems: 'center', gap: '4px', background: 'rgba(0,0,0,0.55)', borderRadius: '8px', padding: '3px 8px' }}>
+                  <img src={LOGO_SRC} alt="ሄኖን" style={{ width: '14px', height: '14px', borderRadius: '3px' }} />
                   <span style={{ color: '#B8860B', fontSize: '10px', fontWeight: '700' }}>ሄኖን</span>
                 </div>
-                {selectedLongVideo.file_size && (
-                  <div style={{ position: 'absolute', bottom: '10px', right: '10px', background: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '2px 8px', fontSize: '10px', color: '#B8860B' }}>
-                    {selectedLongVideo.file_size} MB
-                  </div>
+                {v.file_size && (
+                  <div style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'rgba(0,0,0,0.7)', borderRadius: '6px', padding: '2px 7px', fontSize: '10px', color: '#B8860B' }}>{v.file_size} MB</div>
                 )}
               </div>
 
-              {/* Video info */}
-              <div style={{ background: '#1A1508', borderRadius: '16px', padding: '14px', border: '1px solid #2a2010' }}>
-                {selectedLongVideo.text && (
-                  <h3 style={{ margin: '0 0 10px', fontSize: '15px', color: '#F0E6C8', lineHeight: '1.4' }}>{selectedLongVideo.text}</h3>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              {/* Info card */}
+              <div style={{ background: '#1A1508', borderRadius: '14px', padding: '12px', border: '1px solid #2a2010' }}>
+                {v.text && <p style={{ margin: '0 0 10px', fontSize: '14px', color: '#F0E6C8', fontWeight: '600', lineHeight: '1.4' }}>{v.text}</p>}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Avatar initials={selectedLongVideo.initials || 'U'} color={selectedLongVideo.color || '#B8860B'} size={36} />
+                    <Avatar initials={v.initials || 'U'} color={v.color || '#B8860B'} size={34} />
                     <div>
                       <div style={{ fontWeight: '700', fontSize: '13px', color: '#F0E6C8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {selectedLongVideo.author}
-                        {VERIFIED_USERS.includes(selectedLongVideo.author) && <BadgeCheck size={12} color="#B8860B" />}
+                        {v.author} {VERIFIED_USERS.includes(v.author) && <BadgeCheck size={12} color="#B8860B" />}
                       </div>
-                      {selectedLongVideo.view_count > 0 && (
-                        <div style={{ fontSize: '11px', color: '#666' }}>{selectedLongVideo.view_count.toLocaleString()} እይታዎች</div>
-                      )}
+                      {v.view_count > 0 && <div style={{ fontSize: '10px', color: '#666' }}>{v.view_count.toLocaleString()} እይታ</div>}
                     </div>
                   </div>
-                  <button style={{ background: '#B8860B', border: 'none', borderRadius: '20px', padding: '7px 16px', color: '#000', fontWeight: '700', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px', fontFamily: 'inherit' }}>
-                    <UserPlus size={13} color="#000" /> ተከተል
+                  <button style={{ background: '#B8860B', border: 'none', borderRadius: '18px', padding: '6px 14px', color: '#000', fontWeight: '700', cursor: 'pointer', fontSize: '11px', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <UserPlus size={12} color="#000" /> ተከተል
                   </button>
                 </div>
-
-                {/* Action buttons */}
-                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', scrollbarWidth: 'none' }}>
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
                   {[
-                    { Icon: Heart, label: (selectedLongVideo.likes || 0) + (videoLikes[selectedLongVideo.id] ? 1 : 0), color: videoLikes[selectedLongVideo.id] ? '#ff4500' : '#888', action: async () => {
-                        const liked = videoLikes[selectedLongVideo.id];
-                        setVideoLikes(p => ({ ...p, [selectedLongVideo.id]: !liked }));
-                        if (!liked) {
-                          await supabase.from('reactions').insert([{ post_id: Number(selectedLongVideo.id), user_id: user.id, type: 'like' }]).catch(() => {});
-                          await supabase.from('posts').update({ likes: (selectedLongVideo.likes || 0) + 1 }).eq('id', selectedLongVideo.id);
-                        } else {
-                          await supabase.from('reactions').delete().eq('post_id', Number(selectedLongVideo.id)).eq('user_id', user.id).eq('type', 'like');
-                        }
+                    { Icon: Heart, label: (v.likes || 0) + (videoLikes[v.id] ? 1 : 0), active: videoLikes[v.id], activeColor: '#ff4500',
+                      action: async () => {
+                        const liked = videoLikes[v.id];
+                        setVideoLikes(p => ({ ...p, [v.id]: !liked }));
+                        if (!liked) { await supabase.from('reactions').insert([{ post_id: Number(v.id), user_id: user.id, type: 'like' }]).catch(() => {}); }
+                        else { await supabase.from('reactions').delete().eq('post_id', Number(v.id)).eq('user_id', user.id).eq('type', 'like'); }
                       }},
-                    { Icon: HandHeart, label: (selectedLongVideo.prayers || 0) + (videoPrayers[selectedLongVideo.id] ? 1 : 0), color: videoPrayers[selectedLongVideo.id] ? '#B8860B' : '#888', action: async () => {
-                        const prayed = videoPrayers[selectedLongVideo.id];
-                        setVideoPrayers(p => ({ ...p, [selectedLongVideo.id]: !prayed }));
+                    { Icon: HandHeart, label: (v.prayers || 0) + (videoPrayers[v.id] ? 1 : 0), active: videoPrayers[v.id], activeColor: '#B8860B',
+                      action: async () => {
+                        const prayed = videoPrayers[v.id];
+                        setVideoPrayers(p => ({ ...p, [v.id]: !prayed }));
                         triggerToast(t('prayer'));
-                        if (!prayed) {
-                          await supabase.from('reactions').insert([{ post_id: Number(selectedLongVideo.id), user_id: user.id, type: 'prayer' }]).catch(() => {});
-                          await supabase.from('posts').update({ prayers: (selectedLongVideo.prayers || 0) + 1 }).eq('id', selectedLongVideo.id);
-                        } else {
-                          await supabase.from('reactions').delete().eq('post_id', Number(selectedLongVideo.id)).eq('user_id', user.id).eq('type', 'prayer');
-                        }
+                        if (!prayed) { await supabase.from('reactions').insert([{ post_id: Number(v.id), user_id: user.id, type: 'prayer' }]).catch(() => {}); }
+                        else { await supabase.from('reactions').delete().eq('post_id', Number(v.id)).eq('user_id', user.id).eq('type', 'prayer'); }
                       }},
-                    { Icon: MessageCircle, label: 'ኮሜንት', color: '#888', action: () => triggerToast('አስተያየቶች') },
-                    { Icon: Share2, label: 'አጋራ', color: '#888', action: () => navigator.share?.({ title: selectedLongVideo.text || 'ሄኖን', url: window.location.href }) },
-                    { Icon: Download, label: 'ወርድ', color: '#888', action: async () => {
-                      try {
-                        const res = await fetch(selectedLongVideo.video_url);
-                        const blob = await res.blob();
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a'); a.href = url; a.download = 'henon-video.mp4'; a.click();
-                        URL.revokeObjectURL(url); triggerToast('⬇️ ወረደ!');
-                      } catch { triggerToast('Download አልተቻለም!'); }
-                    }},
-                  ].map(({ Icon: Ic, label, color, action }, i) => (
+                    { Icon: MessageCircle, label: 'ኮሜንት', active: false, activeColor: '#888', action: () => triggerToast('ኮሜንቶች') },
+                    { Icon: Share2, label: 'አጋራ', active: false, activeColor: '#888', action: () => navigator.share?.({ title: v.text || 'ሄኖን', url: window.location.href }).catch(() => {}) },
+                    { Icon: Download, label: 'ወርድ', active: false, activeColor: '#888',
+                      action: async () => {
+                        try {
+                          const res = await fetch(v.video_url);
+                          const blob = await res.blob();
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a'); a.href = url; a.download = 'henon.mp4'; a.click();
+                          URL.revokeObjectURL(url); triggerToast('⬇️ ወረደ!');
+                        } catch { triggerToast('Download አልተቻለም!'); }
+                      }},
+                  ].map(({ Icon: Ic, label, active, activeColor, action }, i) => (
                     <button key={i} onClick={action}
-                      style={{ flexShrink: 0, background: '#0D0A06', border: '1px solid #2a2010', borderRadius: '20px', padding: '7px 14px', color, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: '600', fontFamily: 'inherit' }}>
-                      <Ic size={15} color={color} strokeWidth={1.8} /> {label}
+                      style={{ flexShrink: 0, background: '#0D0A06', border: `1px solid ${active ? activeColor + '66' : '#2a2010'}`, borderRadius: '18px', padding: '6px 12px', color: active ? activeColor : '#888', cursor: 'pointer', fontSize: '11px', fontWeight: active ? '700' : '400', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <Ic size={13} color={active ? activeColor : '#888'} strokeWidth={1.8} /> {label}
                     </button>
                   ))}
                 </div>
@@ -2305,29 +2219,25 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
           )}
 
           {/* Video list */}
-          <h4 style={{ color: '#B8860B', margin: '0 0 12px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Clapperboard size={16} color="#B8860B" strokeWidth={1.8} /> ሌሎች ቪዲዮዎች
+          <h4 style={{ color: '#B8860B', margin: '0 0 10px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <Clapperboard size={14} color="#B8860B" strokeWidth={1.8} /> ሌሎች ቪዲዮዎች
           </h4>
-          {longVideos.filter(v => v.id !== selectedLongVideo?.id).map((v, i) => (
-            <div key={v.id} onClick={() => { setSelectedLongVideo(v); window.scrollTo(0, 0); }}
-              style={{ display: 'flex', gap: '10px', marginBottom: '12px', cursor: 'pointer', background: '#1A1508', borderRadius: '14px', padding: '10px', border: '1px solid #2a2010' }}>
-              {/* Thumbnail */}
-              <div style={{ width: '120px', height: '72px', background: '#0D0A06', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid #2a2010', position: 'relative', overflow: 'hidden' }}>
-                <video src={v.video_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.3)' }}>
-                  <PlayCircle size={24} color="#B8860B" strokeWidth={1.5} />
+          {longVideos.filter(lv => lv.id !== v?.id).map((lv) => (
+            <div key={lv.id} onClick={() => setSelectedLongVideo(lv)}
+              style={{ display: 'flex', gap: '10px', marginBottom: '10px', cursor: 'pointer', background: '#1A1508', borderRadius: '12px', padding: '8px', border: '1px solid #2a2010' }}>
+              <div style={{ width: '110px', height: '65px', background: '#0D0A06', borderRadius: '8px', flexShrink: 0, position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <video src={lv.video_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.35)' }}>
+                  <PlayCircle size={22} color="#B8860B" strokeWidth={1.5} />
                 </div>
-                {v.file_size && (
-                  <div style={{ position: 'absolute', bottom: '3px', right: '3px', background: 'rgba(0,0,0,0.8)', padding: '1px 5px', borderRadius: '4px', fontSize: '9px', color: '#B8860B' }}>{v.file_size}MB</div>
-                )}
+                {lv.file_size && <div style={{ position: 'absolute', bottom: '3px', right: '3px', background: 'rgba(0,0,0,0.8)', padding: '1px 4px', borderRadius: '3px', fontSize: '9px', color: '#B8860B' }}>{lv.file_size}MB</div>}
               </div>
-              {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: '0 0 4px', fontSize: '13px', fontWeight: '600', color: '#F0E6C8', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.4' }}>
-                  {v.text || 'ቪዲዮ'}
+                <p style={{ margin: '0 0 3px', fontSize: '12px', fontWeight: '600', color: '#F0E6C8', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: '1.4' }}>
+                  {lv.text || 'ቪዲዮ'}
                 </p>
-                <div style={{ fontSize: '11px', color: '#888' }}>{v.author}</div>
-                {v.view_count > 0 && <div style={{ fontSize: '10px', color: '#B8860B', marginTop: '2px' }}>{v.view_count.toLocaleString()} እይታ</div>}
+                <div style={{ fontSize: '10px', color: '#888' }}>{lv.author}</div>
+                {lv.view_count > 0 && <div style={{ fontSize: '10px', color: '#B8860B' }}>{lv.view_count.toLocaleString()} እይታ</div>}
               </div>
             </div>
           ))}
@@ -2335,8 +2245,23 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
       );
     };
 
-    if (videoTab === 'short') return renderShort();
-    return renderLong();
+    // Tab switcher — once, at top
+    return (
+      <div style={{ paddingBottom: '20px' }}>
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px', position: 'sticky', top: '62px', zIndex: 50, paddingTop: '8px', background: BG }}>
+          <div style={{ display: 'flex', background: '#1A1508', borderRadius: '22px', padding: '3px', border: '1px solid #2a2010' }}>
+            {[{ id: 'long', label: '📺 Long' }, { id: 'short', label: '🎬 Short' }].map(tab => (
+              <button key={tab.id} onClick={() => { setVideoTab(tab.id); setShortIndex(0); }}
+                style={{ padding: '8px 24px', borderRadius: '18px', border: 'none', cursor: 'pointer', fontWeight: '700', fontSize: '13px', fontFamily: 'inherit', background: videoTab === tab.id ? '#B8860B' : 'transparent', color: videoTab === tab.id ? '#000' : '#666', transition: 'all 0.2s' }}>
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {videoTab === 'short' ? renderShort() : renderLong()}
+      </div>
+    );
   };
 
 // ===================== RENDER UPLOAD =====================
