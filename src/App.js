@@ -1143,6 +1143,16 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 
   useEffect(() => { fetchFeedVideos(); }, [fetchFeedVideos]);
 
+  // Increment view count when long video changes
+  useEffect(() => {
+    if (selectedLongVideo?.id) {
+      supabase.from('posts')
+        .update({ view_count: (selectedLongVideo.view_count || 0) + 1 })
+        .eq('id', selectedLongVideo.id)
+        .then(() => {});
+    }
+  }, [selectedLongVideo?.id]);
+
   // ---- Notifications ----
   const fetchNotifications = useCallback(async () => {
     if (!user?.id) return;
@@ -2174,16 +2184,6 @@ const MainApp = ({ user, onLogout, accounts, onSwitchAccount, onAddAccount, appL
 
     // ---- LONG VIDEO (YouTube style) ----
     const renderLong = () => {
-      // Increment view count
-      React.useEffect(() => {
-        if (selectedLongVideo?.id) {
-          supabase.from('posts')
-            .update({ view_count: (selectedLongVideo.view_count || 0) + 1 })
-            .eq('id', selectedLongVideo.id)
-            .then(() => {});
-        }
-      }, [selectedLongVideo?.id]);
-
       if (videoLoading) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '80px', color: '#B8860B' }}>
           <div style={{ width: '36px', height: '36px', border: '3px solid #2a2010', borderTop: '3px solid #B8860B', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
